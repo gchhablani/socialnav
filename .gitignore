@@ -1,4 +1,8 @@
+.DS_Store
+data
 slurm_logs
 outputs
-data
+train_val
 tb
+misc
+*.log

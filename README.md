@@ -25,3 +25,4 @@
 
 ## References
 - https://github.com/facebookresearch/habitat-lab/tree/main/habitat-baselines#social-navigation
+- Additional objects: https://huggingface.co/datasets/ai-habitat/OVMM_objects

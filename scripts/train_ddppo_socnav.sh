@@ -2,19 +2,19 @@
 #SBATCH --job-name=snav
 #SBATCH --output=slurm_logs/socialnav-ddppo-%j.out
 #SBATCH --error=slurm_logs/socialnav-ddppo-%j.err
-#SBATCH --gpus a40:1
+#SBATCH --gpus a40:4
 #SBATCH --cpus-per-task 10
 #SBATCH --nodes 1
-#SBATCH --ntasks-per-node 1
+#SBATCH --ntasks-per-node 4
 #SBATCH --signal=USR1@90
 #SBATCH --requeue
-#SBATCH --exclude=baymax,xaea-12,heistotron,gundam,consu
+#SBATCH --exclude=baymax,xaea-12,heistotron,gundam,consu,nestor
 #SBATCH --partition=cvmlp-lab
-#SBATCH --qos=short
+#SBATCH --qos=debug
 
-# export GLOG_minloglevel=2
-# export HABITAT_SIM_LOG=quiet
-# export MAGNUM_LOG=quiet
+export GLOG_minloglevel=2
+export HABITAT_SIM_LOG=quiet
+export MAGNUM_LOG=quiet
 
 MAIN_ADDR=$(scontrol show hostnames "${SLURM_JOB_NODELIST}" | head -n 1)
 export MAIN_ADDR
@@ -26,13 +26,12 @@ conda activate socnav
 # TENSORBOARD_DIR="tb/ddppo_socnav/seed_1/"
 # CHECKPOINT_DIR="data/new_checkpoints/ddppo_socnav/seed_1/"
 
-
-export HABITAT_ENV_DEBUG=1
-export HYDRA_FULL_ERROR=1
+# export HABITAT_ENV_DEBUG=1
+# export HYDRA_FULL_ERROR=1
 export PYTHONPATH=/srv/flash1/gchhablani3/spring_2024/socnav/habitat-sim/src_python:${PYTHONPATH}
 
 # wandb config
-JOB_ID="socnav_ddppo_baseline_single_gpu"
+JOB_ID="socnav_ddppo_baseline_multi_gpu"
 # split="train"
 DATA_PATH="data/datasets/hssd/rearrange"
 WB_ENTITY="gchhablani"
@@ -51,9 +50,10 @@ srun python -u -m habitat_baselines.run \
     habitat_baselines.wb.project_name=$PROJECT_NAME \
     habitat_baselines.num_checkpoints=5000 \
     habitat_baselines.total_num_steps=1.0e9 \
-    habitat_baselines.num_environments=12 \
+    habitat_baselines.num_environments=42 \
     habitat_baselines.tensorboard_dir=${TENSORBOARD_DIR} \
     habitat_baselines.video_dir="videos" \
+    habitat_baselines.load_resume_state_config=True \
     habitat_baselines.checkpoint_folder=${CHECKPOINT_DIR} \
     habitat_baselines.eval_ckpt_path_dir=${CHECKPOINT_DIR} \
     habitat.task.actions.agent_0_base_velocity.longitudinal_lin_speed=10.0 \
@@ -84,4 +84,6 @@ srun python -u -m habitat_baselines.run \
     habitat.simulator.ac_freq_ratio=4 \
     habitat.simulator.ctrl_freq=120 \
     habitat.simulator.agents.agent_0.joint_start_noise=0.0 \
-    habitat.dataset.data_path=${DATA_PATH}/train/social_rearrange.json.gz \
+    habitat.dataset.data_path=${DATA_PATH}/train/social_rearrange.json.gz
+
+    # habitat.dataset.content_scenes=['102817140'] \

@@ -18,8 +18,8 @@ hydra:
     name: 'social_nav'
 habitat:
   simulator:
-    additional_object_paths: []
-      # - "data/objects/ycb/configs/"
+    additional_object_paths:
+      - "data/objects/ycb/configs/"
       # - "data/objects/amazon_berkeley/configs/"
       # - "data/objects/google_object_dataset/configs/"
 
