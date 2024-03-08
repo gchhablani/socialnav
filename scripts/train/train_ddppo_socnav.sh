@@ -41,7 +41,7 @@ TENSORBOARD_DIR="tb/${JOB_ID}/seed_1/"
 CHECKPOINT_DIR="data/socnav_checkpoints/${JOB_ID}/seed_1/"
 
 
-srun python -u -m habitat_baselines.run \
+srun python -um socnav.run \
     --config-name=experiments/ddppo_socnav.yaml \
     habitat_baselines.evaluate=False \
     habitat_baselines.wb.entity=$WB_ENTITY \
