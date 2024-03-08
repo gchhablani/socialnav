@@ -84,6 +84,4 @@ srun python -um socnav.run \
     habitat.simulator.ctrl_freq=120 \
     habitat.simulator.agents.agent_0.joint_start_noise=0.0 \
     habitat.dataset.data_path=${DATA_PATH}/train/social_rearrange.json.gz \
-    +habitat/task/lab_sensors@habitat.gym.obs_keys=agent_0_articulated_agent_arm_rgb \
-    +habitat/task/lab_sensors@habitat.gym.obs_keys=agent_0_nav_goal_sensor
     # habitat.dataset.content_scenes=['102817140'] \
