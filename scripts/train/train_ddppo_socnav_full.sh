@@ -1,16 +1,16 @@
 #!/bin/bash
-#SBATCH --job-name=snav
-#SBATCH --output=slurm_logs/socialnav-ddppo-%j.out
-#SBATCH --error=slurm_logs/socialnav-ddppo-%j.err
+#SBATCH --job-name=snav-full
+#SBATCH --output=slurm_logs/socialnav-ddppo-full-%j.out
+#SBATCH --error=slurm_logs/socialnav-ddppo-full-%j.err
 #SBATCH --gpus a40:4
 #SBATCH --cpus-per-task 10
 #SBATCH --nodes 1
 #SBATCH --ntasks-per-node 4
 #SBATCH --signal=USR1@90
 #SBATCH --requeue
-#SBATCH --exclude=baymax,xaea-12,heistotron,gundam,consu,nestor
+#SBATCH --exclude=shakey
 #SBATCH --partition=cvmlp-lab
-#SBATCH --qos=debug
+#SBATCH --qos=short
 
 export GLOG_minloglevel=2
 export HABITAT_SIM_LOG=quiet
@@ -31,25 +31,24 @@ conda activate socnav
 export PYTHONPATH=/srv/flash1/gchhablani3/spring_2024/socnav/habitat-sim/src_python:${PYTHONPATH}
 
 # wandb config
-JOB_ID="socnav_ddppo_baseline_multi_gpu"
+JOB_ID="socnav_ddppo_baseline_multi_gpu_full"
 # split="train"
 DATA_PATH="data/datasets/hssd/rearrange"
 WB_ENTITY="gchhablani"
 PROJECT_NAME="socnav"
 
 TENSORBOARD_DIR="tb/${JOB_ID}/seed_1/"
-CHECKPOINT_DIR="data/new_checkpoints/${JOB_ID}/seed_1/"
+CHECKPOINT_DIR="data/socnav_checkpoints/${JOB_ID}/seed_1/"
 
 
-srun python -u -m habitat_baselines.run \
-    --config-name=social_nav/social_nav.yaml \
-    benchmark/multi_agent=hssd_spot_human_social_nav \
+srun python -um socnav.run \
+    --config-name=experiments/ddppo_socnav_full.yaml \
     habitat_baselines.evaluate=False \
     habitat_baselines.wb.entity=$WB_ENTITY \
     habitat_baselines.wb.run_name=$JOB_ID \
     habitat_baselines.wb.project_name=$PROJECT_NAME \
     habitat_baselines.num_checkpoints=5000 \
-    habitat_baselines.total_num_steps=1.0e9 \
+    habitat_baselines.total_num_steps=3e8 \
     habitat_baselines.num_environments=42 \
     habitat_baselines.tensorboard_dir=${TENSORBOARD_DIR} \
     habitat_baselines.video_dir="videos" \
@@ -84,6 +83,7 @@ srun python -u -m habitat_baselines.run \
     habitat.simulator.ac_freq_ratio=4 \
     habitat.simulator.ctrl_freq=120 \
     habitat.simulator.agents.agent_0.joint_start_noise=0.0 \
-    habitat.dataset.data_path=${DATA_PATH}/train/social_rearrange.json.gz
-
+    habitat.dataset.data_path=${DATA_PATH}/train/social_rearrange.json.gz \
+    +habitat/task/lab_sensors@habitat.gym.obs_keys=agent_0_articulated_agent_arm_rgb \
+    +habitat/task/lab_sensors@habitat.gym.obs_keys=agent_0_nav_goal_sensor
     # habitat.dataset.content_scenes=['102817140'] \

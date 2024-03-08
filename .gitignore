@@ -6,3 +6,4 @@ train_val
 tb
 misc
 *.log
+*.pyc
