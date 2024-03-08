@@ -8,7 +8,7 @@
 #SBATCH --ntasks-per-node 4
 #SBATCH --signal=USR1@90
 #SBATCH --requeue
-#SBATCH --exclude=shakey
+#SBATCH --exclude=shakey,nestor
 #SBATCH --partition=cvmlp-lab
 #SBATCH --qos=short
 
@@ -49,7 +49,7 @@ srun python -um socnav.run \
     habitat_baselines.wb.project_name=$PROJECT_NAME \
     habitat_baselines.num_checkpoints=5000 \
     habitat_baselines.total_num_steps=3e8 \
-    habitat_baselines.num_environments=42 \
+    habitat_baselines.num_environments=32 \
     habitat_baselines.tensorboard_dir=${TENSORBOARD_DIR} \
     habitat_baselines.video_dir="videos" \
     habitat_baselines.load_resume_state_config=True \
