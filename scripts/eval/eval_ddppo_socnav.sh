@@ -1,8 +1,8 @@
 #!/bin/bash
-#SBATCH --job-name=socialnav-eval
-#SBATCH --output=slurm_logs/socialnav-eval-ddppo-%j.out
-#SBATCH --error=slurm_logs/socialnav-eval-ddppo-%j.err
-#SBATCH --gres gpu:1
+#SBATCH --job-name=s-eval
+#SBATCH --output=slurm_logs/eval/socialnav-eval-ddppo-%j.out
+#SBATCH --error=slurm_logs/eval/socialnav-eval-ddppo-%j.err
+#SBATCH --gpus a40:1
 #SBATCH --cpus-per-task 10
 #SBATCH --nodes 1
 #SBATCH --ntasks-per-node 1
@@ -23,27 +23,30 @@ source /srv/flash1/gchhablani3/miniforge3/etc/profile.d/conda.sh
 conda deactivate
 conda activate socnav
 
-TENSORBOARD_DIR="tb/ddppo_socnav/seed_1/eval/"
-CHECKPOINT_DIR="data/socnav_checkpoints/ddppo_socnav/seed_1/"
-DATA_PATH="data/datasets/pointnav_mp3d_v1/"
 
 export PYTHONPATH=/srv/flash1/gchhablani3/spring_2024/socnav/habitat-sim/src_python:${PYTHONPATH}
+
+JOB_ID="socnav_ddppo_baseline_multi_gpu"
+DATA_PATH="data/datasets/hssd/rearrange"
+TENSORBOARD_DIR="tb/${JOB_ID}/seed_1/eval/"
+CHECKPOINT_DIR="data/socnav_checkpoints/${JOB_ID}/seed_1"
 
 # wandb config
 # JOB_ID="pnav_mp3d_2"
 # WB_ENTITY="gchhablani"
 # PROJECT_NAME="pnav_mp3d"
 
-srun python -u -m habitat_baselines.run \
-    --config-name=social_nav/social_nav.yaml \
-    benchmark/multi_agent=hssd_spot_human_social_nav \
+srun python -um socnav.run \
+    --config-name=experiments/ddppo_socnav.yaml \
     habitat_baselines.evaluate=True \
+    habitat.dataset.split=val \
     habitat_baselines.num_checkpoints=5000 \
-    habitat_baselines.total_num_steps=1.0e9 \
-    habitat_baselines.num_environments=12 \
+    habitat_baselines.total_num_steps=3e8 \
+    habitat_baselines.num_environments=32 \
     habitat_baselines.video_dir="videos" \
     habitat_baselines.checkpoint_folder=${CHECKPOINT_DIR} \
     habitat_baselines.eval_ckpt_path_dir=${CHECKPOINT_DIR} \
+    habitat_baselines.tensorboard_dir=${TENSORBOARD_DIR} \
     habitat.task.actions.agent_0_base_velocity.longitudinal_lin_speed=10.0 \
     habitat.task.actions.agent_0_base_velocity.ang_speed=10.0 \
     habitat.task.actions.agent_0_base_velocity.allow_dyn_slide=True \
@@ -76,4 +79,5 @@ srun python -u -m habitat_baselines.run \
     habitat_baselines.load_resume_state_config=False \
     habitat_baselines.test_episode_count=500 \
     habitat_baselines.eval.extra_sim_sensors.third_rgb_sensor.height=1080 \
-    habitat_baselines.eval.extra_sim_sensors.third_rgb_sensor.width=1920
+    habitat_baselines.eval.extra_sim_sensors.third_rgb_sensor.width=1920 \
+    habitat.dataset.data_path=${DATA_PATH}/val/social_rearrange.json.gz \

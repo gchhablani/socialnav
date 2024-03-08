@@ -1,14 +1,14 @@
 #!/bin/bash
 #SBATCH --job-name=snav-full
-#SBATCH --output=slurm_logs/socialnav-ddppo-full-%j.out
-#SBATCH --error=slurm_logs/socialnav-ddppo-full-%j.err
+#SBATCH --output=slurm_logs/train/socialnav-ddppo-full-%j.out
+#SBATCH --error=slurm_logs/train/socialnav-ddppo-full-%j.err
 #SBATCH --gpus a40:4
 #SBATCH --cpus-per-task 10
 #SBATCH --nodes 1
 #SBATCH --ntasks-per-node 4
 #SBATCH --signal=USR1@90
 #SBATCH --requeue
-#SBATCH --exclude=shakey
+#SBATCH --exclude=shakey,chappie
 #SBATCH --partition=cvmlp-lab
 #SBATCH --qos=short
 
