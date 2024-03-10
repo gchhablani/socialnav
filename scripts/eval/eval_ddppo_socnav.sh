@@ -8,7 +8,7 @@
 #SBATCH --ntasks-per-node 1
 #SBATCH --signal=USR1@90
 #SBATCH --requeue
-#SBATCH --exclude=baymax,xaea-12,heistotron,gundam,consu
+#SBATCH --exclude=nestor,shakey
 #SBATCH --partition=cvmlp-lab
 #SBATCH --qos=short
 
@@ -40,10 +40,11 @@ srun python -um socnav.run \
     --config-name=experiments/ddppo_socnav.yaml \
     habitat_baselines.evaluate=True \
     habitat.dataset.split=val \
-    habitat_baselines.num_checkpoints=5000 \
+    habitat_baselines.video_dir="videos" \
+    ++habitat_baselines.eval.video_option=[] \
+    habitat_baselines.num_checkpoints=150 \
     habitat_baselines.total_num_steps=3e8 \
     habitat_baselines.num_environments=12 \
-    habitat_baselines.video_dir="videos" \
     habitat_baselines.checkpoint_folder=${CHECKPOINT_DIR} \
     habitat_baselines.eval_ckpt_path_dir=${CHECKPOINT_DIR} \
     habitat_baselines.tensorboard_dir=${TENSORBOARD_DIR} \

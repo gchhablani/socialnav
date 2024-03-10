@@ -37,8 +37,8 @@ DATA_PATH="data/datasets/hssd/rearrange"
 WB_ENTITY="gchhablani"
 PROJECT_NAME="socnav"
 
-TENSORBOARD_DIR="tb/${JOB_ID}/seed_1/"
-CHECKPOINT_DIR="data/socnav_checkpoints/${JOB_ID}/seed_1/"
+TENSORBOARD_DIR="tb/${JOB_ID}/seed_2/"
+CHECKPOINT_DIR="data/socnav_checkpoints/${JOB_ID}/seed_2/"
 
 
 srun python -um socnav.run \
@@ -47,7 +47,7 @@ srun python -um socnav.run \
     habitat_baselines.wb.entity=$WB_ENTITY \
     habitat_baselines.wb.run_name=$JOB_ID \
     habitat_baselines.wb.project_name=$PROJECT_NAME \
-    habitat_baselines.num_checkpoints=5000 \
+    habitat_baselines.num_checkpoints=150 \
     habitat_baselines.total_num_steps=3e8 \
     habitat_baselines.num_environments=32 \
     habitat_baselines.tensorboard_dir=${TENSORBOARD_DIR} \

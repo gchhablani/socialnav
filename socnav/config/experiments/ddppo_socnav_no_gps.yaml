@@ -22,6 +22,12 @@ habitat:
       - "data/objects/ycb/configs/"
       # - "data/objects/amazon_berkeley/configs/"
       # - "data/objects/google_object_dataset/configs/"
+    agents:
+      agent_0:
+        sim_sensors:
+          arm_rgb_sensor:
+            height: 240
+            width: 228
   gym:
     obs_keys:
       - agent_0_articulated_agent_arm_depth

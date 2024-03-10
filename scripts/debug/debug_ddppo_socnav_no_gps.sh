@@ -2,13 +2,13 @@
 #SBATCH --job-name=snav-ng
 #SBATCH --output=slurm_logs/junk/socialnav-ddppo-no-gps-%j.out
 #SBATCH --error=slurm_logs/junk/socialnav-ddppo-no-gps-%j.err
-#SBATCH --gpus 2080_ti:1
+#SBATCH --gpus a40:1
 #SBATCH --cpus-per-task 10
 #SBATCH --nodes 1
 #SBATCH --ntasks-per-node 1
 #SBATCH --signal=USR1@90
 #SBATCH --requeue
-#SBATCH --exclude=shakey
+#SBATCH --exclude=shakey,nestor
 #SBATCH --partition=cvmlp-lab
 #SBATCH --qos=debug
 
