@@ -1,7 +1,7 @@
 #!/bin/bash
-#SBATCH --job-name=snav-ng
-#SBATCH --output=slurm_logs/junk/socialnav-ddppo-no-gps-%j.out
-#SBATCH --error=slurm_logs/junk/socialnav-ddppo-no-gps-%j.err
+#SBATCH --job-name=snav-full
+#SBATCH --output=slurm_logs/junk/socialnav-ddppo-full-%j.out
+#SBATCH --error=slurm_logs/junk/socialnav-ddppo-full-%j.err
 #SBATCH --gpus a40:1
 #SBATCH --cpus-per-task 10
 #SBATCH --nodes 1
@@ -31,7 +31,7 @@ conda activate socnav
 export PYTHONPATH=/srv/flash1/gchhablani3/spring_2024/socnav/habitat-sim/src_python:${PYTHONPATH}
 
 # wandb config
-JOB_ID="socnav_ddppo_baseline_multi_gpu_no_gps"
+JOB_ID="socnav_ddppo_baseline_multi_gpu_full"
 # split="train"
 DATA_PATH="data/datasets/hssd/rearrange"
 WB_ENTITY="gchhablani"
@@ -42,7 +42,7 @@ CHECKPOINT_DIR="data/socnav_checkpoints/junk/${JOB_ID}/seed_1/"
 
 
 srun python -um socnav.run \
-    --config-name=experiments/ddppo_socnav_no_gps.yaml \
+    --config-name=experiments/ddppo_socnav_full.yaml \
     habitat_baselines.evaluate=False \
     habitat_baselines.wb.entity=$WB_ENTITY \
     habitat_baselines.wb.run_name=$JOB_ID \

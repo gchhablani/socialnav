@@ -40,7 +40,7 @@ srun python -um socnav.run \
     --config-name=experiments/ddppo_socnav.yaml \
     habitat_baselines.evaluate=True \
     habitat.dataset.split=val \
-    habitat_baselines.num_checkpoints=5000 \
+    habitat_baselines.num_checkpoints=150 \
     habitat_baselines.total_num_steps=3e8 \
     habitat_baselines.num_environments=12 \
     habitat_baselines.video_dir="videos" \
