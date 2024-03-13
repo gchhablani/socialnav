@@ -28,8 +28,8 @@ export PYTHONPATH=/srv/flash1/gchhablani3/spring_2024/socnav/habitat-sim/src_pyt
 
 JOB_ID="socnav_ddppo_baseline_multi_gpu"
 DATA_PATH="data/datasets/hssd/rearrange"
-TENSORBOARD_DIR="tb/${JOB_ID}/seed_2/eval/"
-CHECKPOINT_DIR="data/socnav_checkpoints/${JOB_ID}/seed_2"
+TENSORBOARD_DIR="tb/${JOB_ID}/seed_2/ckpt_25_eval/"
+CHECKPOINT_DIR="data/socnav_checkpoints/${JOB_ID}/seed_2/ckpt.25.pth"
 
 # wandb config
 # JOB_ID="pnav_mp3d_2"
@@ -41,7 +41,6 @@ srun python -um socnav.run \
     habitat_baselines.evaluate=True \
     habitat.dataset.split=val \
     habitat_baselines.video_dir="videos" \
-    ++habitat_baselines.eval.video_option=[] \
     habitat_baselines.num_checkpoints=150 \
     habitat_baselines.total_num_steps=3e8 \
     habitat_baselines.num_environments=12 \
@@ -82,3 +81,4 @@ srun python -um socnav.run \
     habitat_baselines.eval.extra_sim_sensors.third_rgb_sensor.height=1080 \
     habitat_baselines.eval.extra_sim_sensors.third_rgb_sensor.width=1920 \
     habitat.dataset.data_path=${DATA_PATH}/val/social_rearrange.json.gz \
+    # ++habitat_baselines.eval.video_option=[] \

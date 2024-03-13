@@ -23,9 +23,6 @@ source /srv/flash1/gchhablani3/miniforge3/etc/profile.d/conda.sh
 conda deactivate
 conda activate socnav
 
-# TENSORBOARD_DIR="tb/ddppo_socnav/seed_1/"
-# CHECKPOINT_DIR="data/new_checkpoints/ddppo_socnav/seed_1/"
-
 # export HABITAT_ENV_DEBUG=1
 # export HYDRA_FULL_ERROR=1
 export PYTHONPATH=/srv/flash1/gchhablani3/spring_2024/socnav/habitat-sim/src_python:${PYTHONPATH}
@@ -37,8 +34,8 @@ DATA_PATH="data/datasets/hssd/rearrange"
 WB_ENTITY="gchhablani"
 PROJECT_NAME="socnav"
 
-TENSORBOARD_DIR="tb/${JOB_ID}/seed_2/"
-CHECKPOINT_DIR="data/socnav_checkpoints/${JOB_ID}/seed_2/"
+TENSORBOARD_DIR="tb/${JOB_ID}/seed_3/"
+CHECKPOINT_DIR="data/socnav_checkpoints/${JOB_ID}/seed_3/"
 
 
 srun python -um socnav.run \

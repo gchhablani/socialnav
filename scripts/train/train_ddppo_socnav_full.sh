@@ -8,7 +8,7 @@
 #SBATCH --ntasks-per-node 4
 #SBATCH --signal=USR1@90
 #SBATCH --requeue
-#SBATCH --exclude=shakey,chappie
+#SBATCH --exclude=shakey,chappie,kitt
 #SBATCH --partition=cvmlp-lab
 #SBATCH --qos=short
 
