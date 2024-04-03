@@ -8,3 +8,5 @@ misc
 *.log
 *.pyc
 videos
+tb_temp
+*.png

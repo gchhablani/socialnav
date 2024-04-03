@@ -22,6 +22,7 @@ if TYPE_CHECKING:
     from omegaconf import DictConfig
 
 from socnav import config
+from socnav.trainers import *
 
 @hydra.main(
     version_base=None,
