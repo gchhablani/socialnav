@@ -1,7 +1,7 @@
 #!/bin/bash
-#SBATCH --job-name=snav-full-sporadic
-#SBATCH --output=slurm_logs/junk/socialnav-ddppo-full-sporadic-%j.out
-#SBATCH --error=slurm_logs/junk/socialnav-ddppo-full-sporadic-%j.err
+#SBATCH --job-name=snav-full-sparse
+#SBATCH --output=slurm_logs/junk/socialnav-ddppo-full-sparse-%j.out
+#SBATCH --error=slurm_logs/junk/socialnav-ddppo-full-sparse-%j.err
 #SBATCH --gpus a40:1
 #SBATCH --cpus-per-task 10
 #SBATCH --nodes 1
@@ -31,17 +31,19 @@ conda activate socnav
 export PYTHONPATH=/srv/flash1/gchhablani3/spring_2024/socnav/habitat-sim/src_python:${PYTHONPATH}
 
 # wandb config
-JOB_ID="socnav_ddppo_baseline_multi_gpu_full_curriculum"
+JOB_ID="socnav_ddppo_baseline_multi_gpu_full_sparse"
+# split="train"
 DATA_PATH="data/datasets/hssd/rearrange"
 WB_ENTITY="gchhablani"
 PROJECT_NAME="socnav"
+
 TENSORBOARD_DIR="tb/junk/${JOB_ID}/seed_1/"
 CHECKPOINT_DIR="data/socnav_checkpoints/junk/${JOB_ID}/seed_1/"
 
 
 srun python -um socnav.run \
-    --config-name=experiments/ddppo_socnav_full_curriculum.yaml \
-    habitat.gps_available_every_x_steps=1 \
+    --config-name=experiments/ddppo_socnav_full_sparse.yaml \
+    habitat.gps_available_every_x_steps=25 \
     habitat_baselines.evaluate=False \
     habitat_baselines.wb.entity=$WB_ENTITY \
     habitat_baselines.wb.run_name=$JOB_ID \

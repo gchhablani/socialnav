@@ -3,6 +3,8 @@
 defaults:
   - /benchmark/multi_agent: hssd_spot_human_social_nav
   - /habitat_baselines: habitat_baselines_rl_config_base
+  - /habitat/task/lab_sensors:
+    - step_id_sensor
   - /habitat/simulator/sim_sensors@habitat_baselines.eval.extra_sim_sensors.third_rgb_sensor: third_rgb_sensor
   - /habitat_baselines/rl/policy/obs_transforms@habitat_baselines.rl.policy.agent_0.obs_transforms.add_virtual_keys:
     - add_virtual_keys_base
@@ -12,7 +14,7 @@ defaults:
   - /habitat_baselines/rl/policy@habitat_baselines.rl.policy.agent_1: hl_fixed
   - /habitat_baselines/rl/policy/hierarchical_policy/defined_skills@habitat_baselines.rl.policy.agent_1.hierarchical_policy.defined_skills: oracle_skills_human_multi_agent
   - _self_
-  - override /habitat: sporadic_gps_habitat_config
+  - override /habitat: sparse_gps_habitat_config
 
 hydra:
   job:
@@ -47,10 +49,11 @@ habitat:
       - agent_1_localization_sensor
       - agent_1_has_finished_oracle_nav
       - agent_1_other_agent_gps
+      - step_id
 
 habitat_baselines:
   verbose: False
-  trainer_name: "curriculum_gps_trainer"
+  trainer_name: "curriculum_zero_gps_trainer"
   updater_name: "HRLPPO"
   distrib_updater_name: "HRLDDPPO"
   torch_gpu_id: 0

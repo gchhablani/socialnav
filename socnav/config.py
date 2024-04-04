@@ -1,13 +1,17 @@
 from hydra.core.config_search_path import ConfigSearchPath
 from hydra.core.config_store import ConfigStore
 from hydra.plugins.search_path_plugin import SearchPathPlugin
-from habitat.config.default_structured_configs import HabitatConfig
+from habitat.config.default_structured_configs import HabitatConfig, LabSensorConfig
 
 from dataclasses import dataclass
 
+@dataclass
+class StepIDSensorConfig(LabSensorConfig):
+    type: str = "StepIDSensor"
+
 
 @dataclass
-class SporadicGpsHabitatConfig(HabitatConfig):
+class SparseGpsHabitatConfig(HabitatConfig):
     gps_available_every_x_steps: int = 5
 
 
@@ -16,7 +20,16 @@ class SporadicGpsHabitatConfig(HabitatConfig):
 # -----------------------------------------------------------------------------
 cs = ConfigStore.instance()
 
-cs.store(group="habitat", name="sporadic_gps_habitat_config", node=SporadicGpsHabitatConfig)
+cs.store(group="habitat", name="sparse_gps_habitat_config", node=SparseGpsHabitatConfig)
+
+
+cs.store(
+    package="habitat.task.lab_sensors.step_id_sensor",
+    group="habitat/task/lab_sensors",
+    name="step_id_sensor",
+    node=StepIDSensorConfig,
+)
+
 
 # @dataclass
 # class CacheImageGoalSensorConfig(LabSensorConfig):

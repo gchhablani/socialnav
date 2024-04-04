@@ -1,6 +1,8 @@
 import contextlib
+import numpy as np
 import time
 import torch
+from typing import Dict
 from habitat.core.logging import logger
 from habitat.utils import profiling_wrapper
 from habitat_baselines.common.baseline_registry import baseline_registry
@@ -26,9 +28,14 @@ from habitat_baselines.common.obs_transformers import apply_obs_transforms_batch
 from habitat_baselines.utils.info_dict import extract_scalars_from_infos
 from habitat_baselines.utils.timing import g_timer
 
-@baseline_registry.register_trainer(name="sporadic_gps_trainer")
-class SporadicGpsTrainer(PPOTrainer):
+@baseline_registry.register_trainer(name="curriculum_last_gps_trainer")
+class CurriculumLastGpsTrainer(PPOTrainer):
     
+    def __init__(self, config=None):
+        super().__init__(config)
+        self.gps_available_every_x_steps = self.config.habitat.gps_available_every_x_steps
+        self.has_found_human = 0
+        
     @profiling_wrapper.RangeContext("train")
     def train(self) -> None:
         r"""Main method for training DD/PPO.
@@ -162,7 +169,44 @@ class SporadicGpsTrainer(PPOTrainer):
                     losses,
                     count_steps_delta,
                 )
+                ### Curriculum logic
+                # NOTE: We implement the curriculum logic here
+                # We get metrics here and decide on the next value
+                # We compute metrics only on first GPU because that's how metrics are calculated for logging
+                # Therefore, we only update the GPS availability according to those metrics
+                if rank0_only():
+                    deltas = {
+                        k: (
+                            (v[-1] - v[0]).sum().item()
+                            if len(v) > 1
+                            else v[0].sum().item()
+                        )
+                        for k, v in self.window_episode_stats.items()
+                    }
+                    deltas["count"] = max(deltas["count"], 1.0)
 
+
+                    # Check to see if there are any metrics
+                    # that haven't been logged yet
+                    metrics = {
+                        k: v / deltas["count"]
+                        for k, v in deltas.items()
+                        if k not in {"reward", "count"}
+                    }
+                    assert 'social_nav_stats.has_found_human' in metrics
+                    self.has_found_human = metrics['social_nav_stats.has_found_human']
+                    
+                    # Adjust self.gps_available_every_x_steps based on the metric value
+                    if self.has_found_human >= 0.75:
+                        # High success rate, decrease frequency of GPS updates
+                        self.gps_available_every_x_steps = min(self.gps_available_every_x_steps * 2, self._ppo_cfg.num_steps)
+                    elif self.has_found_human >= 0.5:
+                        # Moderate success rate, maintain the current frequency of GPS updates
+                        pass  # No change needed
+                    else:
+                        # Low success rate, increase frequency of GPS updates
+                        self.gps_available_every_x_steps = max(self.gps_available_every_x_steps // 2, 1)
+                    ###
                 self._training_log(writer, losses, prev_time)
 
                 # checkpoint model
@@ -201,9 +245,10 @@ class SporadicGpsTrainer(PPOTrainer):
             observations = self.envs.post_step(observations)
             batch = batch_obs(observations, device=self.device)
             batch = apply_obs_transforms_batch(batch, self.obs_transforms)  # type: ignore
-            if (current_step % self.config.habitat.gps_available_every_x_steps != 0):
-                batch['agent_0_goal_to_agent_gps_compass'] = torch.zeros_like(batch['agent_0_goal_to_agent_gps_compass'])
-            # else:
+            if (current_step % self.gps_available_every_x_steps != 0):
+                batch['agent_0_goal_to_agent_gps_compass'] = self.last_known_gps_obs #torch.zeros_like(batch['agent_0_goal_to_agent_gps_compass'])
+            else:
+                self.last_known_gps_obs = batch['agent_0_goal_to_agent_gps_compass']
             #     logger.info(current_step)
             #     logger.info(batch['agent_0_goal_to_agent_gps_compass'])
             rewards = torch.tensor(
@@ -266,3 +311,87 @@ class SporadicGpsTrainer(PPOTrainer):
         self._agent.rollouts.advance_rollout(buffer_index)
 
         return env_slice.stop - env_slice.start
+
+    @rank0_only
+    def _training_log(
+        self, writer, losses: Dict[str, float], prev_time: int = 0
+    ):
+        deltas = {
+            k: (
+                (v[-1] - v[0]).sum().item()
+                if len(v) > 1
+                else v[0].sum().item()
+            )
+            for k, v in self.window_episode_stats.items()
+        }
+        deltas["count"] = max(deltas["count"], 1.0)
+
+        writer.add_scalar(
+            "reward",
+            deltas["reward"] / deltas["count"],
+            self.num_steps_done,
+        )
+
+        # Check to see if there are any metrics
+        # that haven't been logged yet
+        metrics = {
+            k: v / deltas["count"]
+            for k, v in deltas.items()
+            if k not in {"reward", "count"}
+        }
+        # NOTE: We also log this metric as this might help us know how the gps frequency changes
+        writer.add_scalar("metrics/gps_available_every_x_steps", self.gps_available_every_x_steps, self.num_steps_done)
+        
+        for k, v in metrics.items():
+            writer.add_scalar(f"metrics/{k}", v, self.num_steps_done)
+        for k, v in losses.items():
+            writer.add_scalar(f"learner/{k}", v, self.num_steps_done)
+
+        for k, v in self._single_proc_infos.items():
+            writer.add_scalar(k, np.mean(v), self.num_steps_done)
+
+        fps = self.num_steps_done / ((time.time() - self.t_start) + prev_time)
+
+        # Log perf metrics.
+        writer.add_scalar("perf/fps", fps, self.num_steps_done)
+
+        for timer_name, timer_val in g_timer.items():
+            writer.add_scalar(
+                f"perf/{timer_name}",
+                timer_val.mean,
+                self.num_steps_done,
+            )
+
+        # log stats
+        if (
+            self.num_updates_done % self.config.habitat_baselines.log_interval
+            == 0
+        ):
+            logger.info(
+                "update: {}\tfps: {:.3f}\t".format(
+                    self.num_updates_done,
+                    fps,
+                )
+            )
+
+            logger.info(
+                f"Num updates: {self.num_updates_done}\tNum frames {self.num_steps_done}"
+            )
+
+            logger.info(
+                "Average window size: {}  {}".format(
+                    len(self.window_episode_stats["count"]),
+                    "  ".join(
+                        "{}: {:.3f}".format(k, v / deltas["count"])
+                        for k, v in deltas.items()
+                        if k != "count"
+                    ),
+                )
+            )
+            perf_stats_str = " ".join(
+                [f"{k}: {v.mean:.3f}" for k, v in g_timer.items()]
+            )
+            logger.info(f"\tPerf Stats: {perf_stats_str}")
+            if self.config.habitat_baselines.should_log_single_proc_infos:
+                for k, v in self._single_proc_infos.items():
+                    logger.info(f" - {k}: {np.mean(v):.3f}")

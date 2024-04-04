@@ -1,41 +1,174 @@
 import contextlib
-import numpy as np
+import os
+import random
 import time
+from collections import defaultdict, deque
+from typing import TYPE_CHECKING
+
+import numpy as np
 import torch
-from typing import Dict
-from habitat.core.logging import logger
+from omegaconf import OmegaConf
+
+from habitat import logger
+from habitat.config import read_write
 from habitat.utils import profiling_wrapper
 from habitat_baselines.common.baseline_registry import baseline_registry
+from habitat_baselines.common.obs_transformers import (
+    apply_obs_transforms_batch,
+)
 from habitat_baselines.common.tensorboard_utils import (
     get_writer,
 )
-
 from habitat_baselines.rl.ddppo.ddp_utils import (
     EXIT,
+    init_distrib_slurm,
     load_resume_state,
     rank0_only,
     requeue_job,
     save_resume_state,
 )
 
-from habitat_baselines.rl.ppo.ppo_trainer import PPOTrainer
+if TYPE_CHECKING:
+    from omegaconf import DictConfig
+
 from habitat_baselines.rl.ddppo.policy import PointNavResNetNet
 from habitat_baselines.utils.common import (
     batch_obs,
-    inference_mode
+    inference_mode,
 )
-from habitat_baselines.common.obs_transformers import apply_obs_transforms_batch
-from habitat_baselines.utils.info_dict import extract_scalars_from_infos
+from habitat_baselines.utils.info_dict import (
+    NON_SCALAR_METRICS,
+    extract_scalars_from_infos,
+)
 from habitat_baselines.utils.timing import g_timer
 
-@baseline_registry.register_trainer(name="curriculum_gps_trainer")
-class CurriculumGpsTrainer(PPOTrainer):
-    
-    def __init__(self, config=None):
-        super().__init__(config)
-        self.gps_available_every_x_steps = self.config.habitat.gps_available_every_x_steps
-        self.has_found_human = 0
-        
+from habitat_baselines.rl.ppo.ppo_trainer import PPOTrainer, get_device
+
+@baseline_registry.register_trainer(name="sparse_gps_trainer")
+class SparseGpsTrainer(PPOTrainer):
+
+    def _init_train(self, resume_state=None):
+        if resume_state is None:
+            resume_state = load_resume_state(self.config)
+
+        if resume_state is not None:
+            if not self.config.habitat_baselines.load_resume_state_config:
+                raise FileExistsError(
+                    f"The configuration provided has habitat_baselines.load_resume_state_config=False but a previous training run exists. You can either delete the checkpoint folder {self.config.habitat_baselines.checkpoint_folder}, or change the configuration key habitat_baselines.checkpoint_folder in your new run."
+                )
+
+            self.config = self._get_resume_state_config_or_new_config(
+                resume_state["config"]
+            )
+
+        if self.config.habitat_baselines.rl.ddppo.force_distributed:
+            self._is_distributed = True
+
+        self._add_preemption_signal_handlers()
+
+        if self._is_distributed:
+            local_rank, tcp_store = init_distrib_slurm(
+                self.config.habitat_baselines.rl.ddppo.distrib_backend
+            )
+            if rank0_only():
+                logger.info(
+                    "Initialized DD-PPO with {} workers".format(
+                        torch.distributed.get_world_size()
+                    )
+                )
+
+            with read_write(self.config):
+                self.config.habitat_baselines.torch_gpu_id = local_rank
+                self.config.habitat.simulator.habitat_sim_v0.gpu_device_id = (
+                    local_rank
+                )
+                # Multiply by the number of simulators to make sure they also get unique seeds
+                self.config.habitat.seed += (
+                    torch.distributed.get_rank()
+                    * self.config.habitat_baselines.num_environments
+                )
+
+            random.seed(self.config.habitat.seed)
+            np.random.seed(self.config.habitat.seed)
+            torch.manual_seed(self.config.habitat.seed)
+            self.num_rollouts_done_store = torch.distributed.PrefixStore(
+                "rollout_tracker", tcp_store
+            )
+            self.num_rollouts_done_store.set("num_done", "0")
+
+        if rank0_only() and self.config.habitat_baselines.verbose:
+            logger.info(f"config: {OmegaConf.to_yaml(self.config)}")
+
+        profiling_wrapper.configure(
+            capture_start_step=self.config.habitat_baselines.profiling.capture_start_step,
+            num_steps_to_capture=self.config.habitat_baselines.profiling.num_steps_to_capture,
+        )
+
+        # remove the non scalar measures from the measures since they can only be used in
+        # evaluation
+        for non_scalar_metric in NON_SCALAR_METRICS:
+            non_scalar_metric_root = non_scalar_metric.split(".")[0]
+            if non_scalar_metric_root in self.config.habitat.task.measurements:
+                with read_write(self.config):
+                    OmegaConf.set_struct(self.config, False)
+                    self.config.habitat.task.measurements.pop(
+                        non_scalar_metric_root
+                    )
+                    OmegaConf.set_struct(self.config, True)
+                if self.config.habitat_baselines.verbose:
+                    logger.info(
+                        f"Removed metric {non_scalar_metric_root} from metrics since it cannot be used during training."
+                    )
+
+        self._init_envs()
+
+        self.device = get_device(self.config)
+
+        if rank0_only() and not os.path.isdir(
+            self.config.habitat_baselines.checkpoint_folder
+        ):
+            os.makedirs(self.config.habitat_baselines.checkpoint_folder)
+
+        logger.add_filehandler(self.config.habitat_baselines.log_file)
+
+        self._agent = self._create_agent(resume_state)
+        if self._is_distributed:
+            self._agent.init_distributed(find_unused_params=False)  # type: ignore
+        self._agent.post_init()
+
+        self._is_static_encoder = (
+            not self.config.habitat_baselines.rl.ddppo.train_encoder
+        )
+        self._ppo_cfg = self.config.habitat_baselines.rl.ppo
+
+        observations = self.envs.reset()
+        observations = self.envs.post_step(observations)
+        batch = batch_obs(observations, device=self.device)
+        batch = apply_obs_transforms_batch(batch, self.obs_transforms)  # type: ignore
+
+        if self._is_static_encoder:
+            self._encoder = self._agent.actor_critic.visual_encoder
+            assert (
+                self._encoder is not None
+            ), "Visual encoder is not specified for this actor"
+            with inference_mode():
+                batch[
+                    PointNavResNetNet.PRETRAINED_VISUAL_FEATURES_KEY
+                ] = self._encoder(batch)
+        self._agent.rollouts.insert_first_observations(batch)
+
+        self.current_episode_reward = torch.zeros(self.envs.num_envs, 1)
+        self.running_episode_stats = dict(
+            count=torch.zeros(self.envs.num_envs, 1),
+            reward=torch.zeros(self.envs.num_envs, 1),
+        )
+        self.window_episode_stats = defaultdict(
+            lambda: deque(maxlen=self._ppo_cfg.reward_window_size)
+        )
+
+        self.t_start = time.time()
+
+
     @profiling_wrapper.RangeContext("train")
     def train(self) -> None:
         r"""Main method for training DD/PPO.
@@ -134,11 +267,8 @@ class CurriculumGpsTrainer(PPOTrainer):
                         )
 
                         for buffer_index in range(self._agent.nbuffers):
-                            # NOTE: We pass step directly. 
-                            # The step = 0, actually corresponds to the first step (we have already stepped once in the envs)
-                            # TODO: Think if this is logically correct
                             count_steps_delta += (
-                                self._collect_environment_result(buffer_index, step)
+                                self._collect_environment_result(buffer_index)
                             )
 
                             if (buffer_index + 1) == self._agent.nbuffers:
@@ -169,44 +299,7 @@ class CurriculumGpsTrainer(PPOTrainer):
                     losses,
                     count_steps_delta,
                 )
-                ### Curriculum logic
-                # NOTE: We implement the curriculum logic here
-                # We get metrics here and decide on the next value
-                # We compute metrics only on first GPU because that's how metrics are calculated for logging
-                # Therefore, we only update the GPS availability according to those metrics
-                if rank0_only():
-                    deltas = {
-                        k: (
-                            (v[-1] - v[0]).sum().item()
-                            if len(v) > 1
-                            else v[0].sum().item()
-                        )
-                        for k, v in self.window_episode_stats.items()
-                    }
-                    deltas["count"] = max(deltas["count"], 1.0)
 
-
-                    # Check to see if there are any metrics
-                    # that haven't been logged yet
-                    metrics = {
-                        k: v / deltas["count"]
-                        for k, v in deltas.items()
-                        if k not in {"reward", "count"}
-                    }
-                    assert 'social_nav_stats.has_found_human' in metrics
-                    self.has_found_human = metrics['social_nav_stats.has_found_human']
-                    
-                    # Adjust self.gps_available_every_x_steps based on the metric value
-                    if self.has_found_human >= 0.75:
-                        # High success rate, decrease frequency of GPS updates
-                        self.gps_available_every_x_steps = min(self.gps_available_every_x_steps * 2, self._ppo_cfg.num_steps)
-                    elif self.has_found_human >= 0.5:
-                        # Moderate success rate, maintain the current frequency of GPS updates
-                        pass  # No change needed
-                    else:
-                        # Low success rate, increase frequency of GPS updates
-                        self.gps_available_every_x_steps = max(self.gps_available_every_x_steps // 2, 1)
-                    ###
                 self._training_log(writer, losses, prev_time)
 
                 # checkpoint model
@@ -225,7 +318,7 @@ class CurriculumGpsTrainer(PPOTrainer):
             self.envs.close()
         
     
-    def _collect_environment_result(self, buffer_index: int = 0, current_step = None):
+    def _collect_environment_result(self, buffer_index: int = 0):
         num_envs = self.envs.num_envs
         env_slice = slice(
             int(buffer_index * num_envs / self._agent.nbuffers),
@@ -245,12 +338,16 @@ class CurriculumGpsTrainer(PPOTrainer):
             observations = self.envs.post_step(observations)
             batch = batch_obs(observations, device=self.device)
             batch = apply_obs_transforms_batch(batch, self.obs_transforms)  # type: ignore
-            if (current_step % self.gps_available_every_x_steps != 0):
-                batch['agent_0_goal_to_agent_gps_compass'] = self.last_known_gps_obs #torch.zeros_like(batch['agent_0_goal_to_agent_gps_compass'])
-            else:
-                self.last_known_gps_obs = batch['agent_0_goal_to_agent_gps_compass']
-            #     logger.info(current_step)
-            #     logger.info(batch['agent_0_goal_to_agent_gps_compass'])
+            
+            for i in range(len(batch['step_id'])):
+                step_id = batch['step_id'][i].item()
+                if step_id % self.config.habitat.gps_available_every_x_steps != 0:
+                    with inference_mode():
+                        batch['agent_0_goal_to_agent_gps_compass'][i] = torch.zeros_like(batch['agent_0_goal_to_agent_gps_compass'][i])
+                # else:
+                #     logger.info(batch['step_id'][i])
+                #     logger.info(batch['agent_0_goal_to_agent_gps_compass'])
+
             rewards = torch.tensor(
                 rewards_l,
                 dtype=torch.float,
@@ -311,87 +408,3 @@ class CurriculumGpsTrainer(PPOTrainer):
         self._agent.rollouts.advance_rollout(buffer_index)
 
         return env_slice.stop - env_slice.start
-
-    @rank0_only
-    def _training_log(
-        self, writer, losses: Dict[str, float], prev_time: int = 0
-    ):
-        deltas = {
-            k: (
-                (v[-1] - v[0]).sum().item()
-                if len(v) > 1
-                else v[0].sum().item()
-            )
-            for k, v in self.window_episode_stats.items()
-        }
-        deltas["count"] = max(deltas["count"], 1.0)
-
-        writer.add_scalar(
-            "reward",
-            deltas["reward"] / deltas["count"],
-            self.num_steps_done,
-        )
-
-        # Check to see if there are any metrics
-        # that haven't been logged yet
-        metrics = {
-            k: v / deltas["count"]
-            for k, v in deltas.items()
-            if k not in {"reward", "count"}
-        }
-        # NOTE: We also log this metric as this might help us know how the gps frequency changes
-        writer.add_scalar("metrics/gps_available_every_x_steps", self.gps_available_every_x_steps, self.num_steps_done)
-        
-        for k, v in metrics.items():
-            writer.add_scalar(f"metrics/{k}", v, self.num_steps_done)
-        for k, v in losses.items():
-            writer.add_scalar(f"learner/{k}", v, self.num_steps_done)
-
-        for k, v in self._single_proc_infos.items():
-            writer.add_scalar(k, np.mean(v), self.num_steps_done)
-
-        fps = self.num_steps_done / ((time.time() - self.t_start) + prev_time)
-
-        # Log perf metrics.
-        writer.add_scalar("perf/fps", fps, self.num_steps_done)
-
-        for timer_name, timer_val in g_timer.items():
-            writer.add_scalar(
-                f"perf/{timer_name}",
-                timer_val.mean,
-                self.num_steps_done,
-            )
-
-        # log stats
-        if (
-            self.num_updates_done % self.config.habitat_baselines.log_interval
-            == 0
-        ):
-            logger.info(
-                "update: {}\tfps: {:.3f}\t".format(
-                    self.num_updates_done,
-                    fps,
-                )
-            )
-
-            logger.info(
-                f"Num updates: {self.num_updates_done}\tNum frames {self.num_steps_done}"
-            )
-
-            logger.info(
-                "Average window size: {}  {}".format(
-                    len(self.window_episode_stats["count"]),
-                    "  ".join(
-                        "{}: {:.3f}".format(k, v / deltas["count"])
-                        for k, v in deltas.items()
-                        if k != "count"
-                    ),
-                )
-            )
-            perf_stats_str = " ".join(
-                [f"{k}: {v.mean:.3f}" for k, v in g_timer.items()]
-            )
-            logger.info(f"\tPerf Stats: {perf_stats_str}")
-            if self.config.habitat_baselines.should_log_single_proc_infos:
-                for k, v in self._single_proc_infos.items():
-                    logger.info(f" - {k}: {np.mean(v):.3f}")

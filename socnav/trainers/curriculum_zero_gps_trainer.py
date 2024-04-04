@@ -28,8 +28,8 @@ from habitat_baselines.common.obs_transformers import apply_obs_transforms_batch
 from habitat_baselines.utils.info_dict import extract_scalars_from_infos
 from habitat_baselines.utils.timing import g_timer
 
-@baseline_registry.register_trainer(name="curriculum_gps_trainer")
-class CurriculumGpsTrainer(PPOTrainer):
+@baseline_registry.register_trainer(name="curriculum_zero_gps_trainer")
+class CurriculumZeroGpsTrainer(PPOTrainer):
     
     def __init__(self, config=None):
         super().__init__(config)
@@ -138,7 +138,7 @@ class CurriculumGpsTrainer(PPOTrainer):
                             # The step = 0, actually corresponds to the first step (we have already stepped once in the envs)
                             # TODO: Think if this is logically correct
                             count_steps_delta += (
-                                self._collect_environment_result(buffer_index, step)
+                                self._collect_environment_result(buffer_index)
                             )
 
                             if (buffer_index + 1) == self._agent.nbuffers:
@@ -199,7 +199,10 @@ class CurriculumGpsTrainer(PPOTrainer):
                     # Adjust self.gps_available_every_x_steps based on the metric value
                     if self.has_found_human >= 0.75:
                         # High success rate, decrease frequency of GPS updates
-                        self.gps_available_every_x_steps = min(self.gps_available_every_x_steps * 2, self._ppo_cfg.num_steps)
+                        self.gps_available_every_x_steps = min(
+                            self.gps_available_every_x_steps * 2, 
+                            self.config.habitat.environment.max_episode_steps
+                        )
                     elif self.has_found_human >= 0.5:
                         # Moderate success rate, maintain the current frequency of GPS updates
                         pass  # No change needed
@@ -225,7 +228,7 @@ class CurriculumGpsTrainer(PPOTrainer):
             self.envs.close()
         
     
-    def _collect_environment_result(self, buffer_index: int = 0, current_step = None):
+    def _collect_environment_result(self, buffer_index: int = 0):
         num_envs = self.envs.num_envs
         env_slice = slice(
             int(buffer_index * num_envs / self._agent.nbuffers),
@@ -245,11 +248,14 @@ class CurriculumGpsTrainer(PPOTrainer):
             observations = self.envs.post_step(observations)
             batch = batch_obs(observations, device=self.device)
             batch = apply_obs_transforms_batch(batch, self.obs_transforms)  # type: ignore
-            if (current_step % self.gps_available_every_x_steps != 0):
-                batch['agent_0_goal_to_agent_gps_compass'] = torch.zeros_like(batch['agent_0_goal_to_agent_gps_compass'])
-            # else:
-            #     logger.info(current_step)
-            #     logger.info(batch['agent_0_goal_to_agent_gps_compass'])
+            for i in range(len(batch['step_id'])):
+                step_id = batch['step_id'][i].item()
+                if step_id % self.config.habitat.gps_available_every_x_steps != 0:
+                    with inference_mode():
+                        batch['agent_0_goal_to_agent_gps_compass'][i] = torch.zeros_like(batch['agent_0_goal_to_agent_gps_compass'][i])
+                # else:
+                #     logger.info(batch['step_id'][i])
+                #     logger.info(batch['agent_0_goal_to_agent_gps_compass'])
             rewards = torch.tensor(
                 rewards_l,
                 dtype=torch.float,

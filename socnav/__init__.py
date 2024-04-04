@@ -1,0 +1,1 @@
+from socnav.task import sensors
