@@ -173,6 +173,7 @@ class CurriculumGpsTrainer(PPOTrainer):
                 # NOTE: We implement the curriculum logic here
                 # We get metrics here and decide on the next value
                 # We compute metrics only on first GPU because that's how metrics are calculated for logging
+                # Therefore, we only update the GPS availability according to those metrics
                 if rank0_only():
                     deltas = {
                         k: (
@@ -195,17 +196,17 @@ class CurriculumGpsTrainer(PPOTrainer):
                     assert 'social_nav_stats.has_found_human' in metrics
                     self.has_found_human = metrics['social_nav_stats.has_found_human']
                     
-                # Adjust self.gps_available_every_x_steps based on the metric value
-                if self.has_found_human >= 0.75:
-                    # High success rate, decrease frequency of GPS updates
-                    self.gps_available_every_x_steps = min(self.gps_available_every_x_steps * 2, self._ppo_cfg.num_steps)
-                elif self.has_found_human >= 0.5:
-                    # Moderate success rate, maintain the current frequency of GPS updates
-                    pass  # No change needed
-                else:
-                    # Low success rate, increase frequency of GPS updates
-                    self.gps_available_every_x_steps = max(self.gps_available_every_x_steps // 2, 1)
-                ###
+                    # Adjust self.gps_available_every_x_steps based on the metric value
+                    if self.has_found_human >= 0.75:
+                        # High success rate, decrease frequency of GPS updates
+                        self.gps_available_every_x_steps = min(self.gps_available_every_x_steps * 2, self._ppo_cfg.num_steps)
+                    elif self.has_found_human >= 0.5:
+                        # Moderate success rate, maintain the current frequency of GPS updates
+                        pass  # No change needed
+                    else:
+                        # Low success rate, increase frequency of GPS updates
+                        self.gps_available_every_x_steps = max(self.gps_available_every_x_steps // 2, 1)
+                    ###
                 self._training_log(writer, losses, prev_time)
 
                 # checkpoint model
