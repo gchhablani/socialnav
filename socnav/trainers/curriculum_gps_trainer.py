@@ -34,7 +34,8 @@ class CurriculumGpsTrainer(PPOTrainer):
     def __init__(self, config=None):
         super().__init__(config)
         self.gps_available_every_x_steps = self.config.habitat.gps_available_every_x_steps
-
+        self.has_found_human = 0
+        
     @profiling_wrapper.RangeContext("train")
     def train(self) -> None:
         r"""Main method for training DD/PPO.
@@ -171,40 +172,40 @@ class CurriculumGpsTrainer(PPOTrainer):
                 ### Curriculum logic
                 # NOTE: We implement the curriculum logic here
                 # We get metrics here and decide on the next value
-                deltas = {
-                    k: (
-                        (v[-1] - v[0]).sum().item()
-                        if len(v) > 1
-                        else v[0].sum().item()
-                    )
-                    for k, v in self.window_episode_stats.items()
-                }
-                deltas["count"] = max(deltas["count"], 1.0)
+                # We compute metrics only on first GPU because that's how metrics are calculated for logging
+                if rank0_only():
+                    deltas = {
+                        k: (
+                            (v[-1] - v[0]).sum().item()
+                            if len(v) > 1
+                            else v[0].sum().item()
+                        )
+                        for k, v in self.window_episode_stats.items()
+                    }
+                    deltas["count"] = max(deltas["count"], 1.0)
 
 
-                # Check to see if there are any metrics
-                # that haven't been logged yet
-                metrics = {
-                    k: v / deltas["count"]
-                    for k, v in deltas.items()
-                    if k not in {"reward", "count"}
-                }
-                # logger.info(metrics)
-                assert 'social_nav_stats.has_found_human' in metrics
-                has_found_human = metrics['social_nav_stats.has_found_human']
+                    # Check to see if there are any metrics
+                    # that haven't been logged yet
+                    metrics = {
+                        k: v / deltas["count"]
+                        for k, v in deltas.items()
+                        if k not in {"reward", "count"}
+                    }
+                    assert 'social_nav_stats.has_found_human' in metrics
+                    self.has_found_human = metrics['social_nav_stats.has_found_human']
                     
                 # Adjust self.gps_available_every_x_steps based on the metric value
-                if has_found_human >= 0.6:
+                if self.has_found_human >= 0.75:
                     # High success rate, decrease frequency of GPS updates
                     self.gps_available_every_x_steps = min(self.gps_available_every_x_steps * 2, self._ppo_cfg.num_steps)
-                elif has_found_human >= 0.4:
+                elif self.has_found_human >= 0.5:
                     # Moderate success rate, maintain the current frequency of GPS updates
                     pass  # No change needed
                 else:
                     # Low success rate, increase frequency of GPS updates
                     self.gps_available_every_x_steps = max(self.gps_available_every_x_steps // 2, 1)
                 ###
-                
                 self._training_log(writer, losses, prev_time)
 
                 # checkpoint model
