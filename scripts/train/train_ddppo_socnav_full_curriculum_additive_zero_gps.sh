@@ -31,7 +31,7 @@ conda activate socnav
 export PYTHONPATH=/srv/flash1/gchhablani3/spring_2024/socnav/habitat-sim/src_python:${PYTHONPATH}
 
 # wandb config
-JOB_ID="socnav_ddppo_baseline_multi_gpu_full_curriculum_additive_new"
+JOB_ID="socnav_ddppo_baseline_multi_gpu_full_curriculum_additive"
 # split="train"
 DATA_PATH="data/datasets/hssd/rearrange"
 WB_ENTITY="gchhablani"
