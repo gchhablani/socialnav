@@ -28,8 +28,8 @@ from habitat_baselines.common.obs_transformers import apply_obs_transforms_batch
 from habitat_baselines.utils.info_dict import extract_scalars_from_infos
 from habitat_baselines.utils.timing import g_timer
 
-@baseline_registry.register_trainer(name="curriculum_zero_gps_trainer")
-class CurriculumZeroGpsTrainer(PPOTrainer):
+@baseline_registry.register_trainer(name="curriculum_additive_zero_gps_trainer")
+class CurriculumAdditiveZeroGpsTrainer(PPOTrainer):
     
     def __init__(self, config=None):
         super().__init__(config)
@@ -200,7 +200,7 @@ class CurriculumZeroGpsTrainer(PPOTrainer):
                     if self.has_found_human >= 0.75:
                         # High success rate, decrease frequency of GPS updates
                         self.gps_available_every_x_steps = min(
-                            self.gps_available_every_x_steps * 2, 
+                            self.gps_available_every_x_steps + 5, 
                             self.config.habitat.environment.max_episode_steps
                         )
                     elif self.has_found_human >= 0.5:
@@ -208,7 +208,7 @@ class CurriculumZeroGpsTrainer(PPOTrainer):
                         pass  # No change needed
                     else:
                         # Low success rate, increase frequency of GPS updates
-                        self.gps_available_every_x_steps = max(self.gps_available_every_x_steps // 2, 1)
+                        self.gps_available_every_x_steps = max(self.gps_available_every_x_steps - 5, 1)
                     ###
                 self._training_log(writer, losses, prev_time)
 

@@ -1,7 +1,7 @@
 #!/bin/bash
-#SBATCH --job-name=snav-full-curriculum-new
-#SBATCH --output=slurm_logs/train/socialnav-ddppo-full-curriculum-new-%j.out
-#SBATCH --error=slurm_logs/train/socialnav-ddppo-full-curriculum-new-%j.err
+#SBATCH --job-name=snav-full-curriculum-additive-new
+#SBATCH --output=slurm_logs/train/socialnav-ddppo-full-curriculum-additive-new-%j.out
+#SBATCH --error=slurm_logs/train/socialnav-ddppo-full-curriculum-additive-new-%j.err
 #SBATCH --gpus a40:4
 #SBATCH --cpus-per-task 10
 #SBATCH --nodes 1
@@ -31,7 +31,7 @@ conda activate socnav
 export PYTHONPATH=/srv/flash1/gchhablani3/spring_2024/socnav/habitat-sim/src_python:${PYTHONPATH}
 
 # wandb config
-JOB_ID="socnav_ddppo_baseline_multi_gpu_full_curriculum_new"
+JOB_ID="socnav_ddppo_baseline_multi_gpu_full_curriculum_additive_new"
 # split="train"
 DATA_PATH="data/datasets/hssd/rearrange"
 WB_ENTITY="gchhablani"
@@ -42,7 +42,7 @@ CHECKPOINT_DIR="data/socnav_checkpoints/${JOB_ID}/seed_1/"
 
 
 srun python -um socnav.run \
-    --config-name=experiments/ddppo_socnav_full_curriculum.yaml \
+    --config-name=experiments/ddppo_socnav_full_curriculum_additive_zero_gps.yaml \
     habitat.gps_available_every_x_steps=1 \
     habitat_baselines.evaluate=False \
     habitat_baselines.wb.entity=$WB_ENTITY \
