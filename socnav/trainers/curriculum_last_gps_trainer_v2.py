@@ -249,9 +249,9 @@ class CurriculumLastGpsTrainerV2(PPOTrainer):
             observations = self.envs.post_step(observations)
             batch = batch_obs(observations, device=self.device)
             batch = apply_obs_transforms_batch(batch, self.obs_transforms)  # type: ignore
-            if first_known_gps_encountered == False:
+            if self.first_known_gps_encountered == False:
                 self.last_known_gps_obs = batch['agent_0_goal_to_agent_gps_compass'] # init
-                first_known_gps_encountered = True
+                self.first_known_gps_encountered = True
             for i in range(len(batch['step_id'])):
                 step_id = batch['step_id'][i].item()
                 if step_id == 1:
