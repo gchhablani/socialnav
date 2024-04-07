@@ -19,6 +19,9 @@ class CurriculumHabitatConfig(HabitatConfig):
     gps_available_every_x_steps: int = 5
     curriculum_lower_threshold: float = 0.85
     curriculum_upper_threshold: float = 0.90
+    warmup_steps: float = 0
+    curriculum_dynamic_scale_factor: float = 0.05 
+    curriculum_dynamic_axis: float = 0.55
 
 
 
