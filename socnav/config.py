@@ -14,6 +14,13 @@ class StepIDSensorConfig(LabSensorConfig):
 class SparseGpsHabitatConfig(HabitatConfig):
     gps_available_every_x_steps: int = 5
 
+@dataclass
+class CurriculumHabitatConfig(HabitatConfig):
+    gps_available_every_x_steps: int = 5
+    curriculum_lower_threshold: float = 0.85
+    curriculum_upper_threshold: float = 0.90
+
+
 
 # -----------------------------------------------------------------------------
 # Register configs in the Hydra ConfigStore
@@ -21,7 +28,7 @@ class SparseGpsHabitatConfig(HabitatConfig):
 cs = ConfigStore.instance()
 
 cs.store(group="habitat", name="sparse_gps_habitat_config", node=SparseGpsHabitatConfig)
-
+cs.store(group="habitat", name="curriculum_habitat_config", node=CurriculumHabitatConfig)
 
 cs.store(
     package="habitat.task.lab_sensors.step_id_sensor",

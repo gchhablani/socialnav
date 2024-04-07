@@ -14,7 +14,7 @@ defaults:
   - /habitat_baselines/rl/policy@habitat_baselines.rl.policy.agent_1: hl_fixed
   - /habitat_baselines/rl/policy/hierarchical_policy/defined_skills@habitat_baselines.rl.policy.agent_1.hierarchical_policy.defined_skills: oracle_skills_human_multi_agent
   - _self_
-  - override /habitat: sparse_gps_habitat_config
+  - override /habitat: curriculum_habitat_config
 
 hydra:
   job:

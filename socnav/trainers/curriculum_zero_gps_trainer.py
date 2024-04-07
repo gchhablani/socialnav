@@ -197,13 +197,13 @@ class CurriculumZeroGpsTrainer(PPOTrainer):
                     self.has_found_human = metrics['social_nav_stats.has_found_human']
                     
                     # Adjust self.gps_available_every_x_steps based on the metric value
-                    if self.has_found_human >= 0.75:
+                    if self.has_found_human >= self.config.habitat.curriculum_upper_threshold:
                         # High success rate, decrease frequency of GPS updates
                         self.gps_available_every_x_steps = min(
                             self.gps_available_every_x_steps * 2, 
                             self.config.habitat.environment.max_episode_steps
                         )
-                    elif self.has_found_human >= 0.5:
+                    elif self.has_found_human >= self.config.habitat.curriculum_lower_threshold:
                         # Moderate success rate, maintain the current frequency of GPS updates
                         pass  # No change needed
                     else:
