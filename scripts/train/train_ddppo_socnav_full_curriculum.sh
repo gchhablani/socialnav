@@ -1,7 +1,7 @@
 #!/bin/bash
-#SBATCH --job-name=snav-full-curriculum-additive-dynamic-new
-#SBATCH --output=slurm_logs/train/socialnav-ddppo-full-curriculum-additive-dynamic-new-0.75-0.5-%j.out
-#SBATCH --error=slurm_logs/train/socialnav-ddppo-full-curriculum-additive-dynamic-new-0.75-0.5-%j.err
+#SBATCH --job-name=snav-full-curriculum
+#SBATCH --output=slurm_logs/train/socialnav-ddppo-full-curriculum-%j.out
+#SBATCH --error=slurm_logs/train/socialnav-ddppo-full-curriculum-%j.err
 #SBATCH --gpus a40:4
 #SBATCH --cpus-per-task 10
 #SBATCH --nodes 1
@@ -9,8 +9,8 @@
 #SBATCH --signal=USR1@90
 #SBATCH --requeue
 #SBATCH --exclude=shakey,chappie,kitt
-#SBATCH --account=overcap
-#SBATCH --partition=overcap
+#SBATCH --partition=cvmlp-lab
+#SBATCH --qos=short
 
 export GLOG_minloglevel=2
 export HABITAT_SIM_LOG=quiet
@@ -19,9 +19,9 @@ export MAGNUM_LOG=quiet
 MAIN_ADDR=$(scontrol show hostnames "${SLURM_JOB_NODELIST}" | head -n 1)
 export MAIN_ADDR
 
-source /coc/flash5/mummettuguli3/conda_installation/anaconda3/etc/profile.d/conda.sh
+source /srv/flash1/gchhablani3/miniforge3/etc/profile.d/conda.sh
 conda deactivate
-conda activate socnav2
+conda activate socnav
 
 # TENSORBOARD_DIR="tb/ddppo_socnav/seed_1/"
 # CHECKPOINT_DIR="data/new_checkpoints/ddppo_socnav/seed_1/"
@@ -31,21 +31,19 @@ conda activate socnav2
 export PYTHONPATH=/srv/flash1/gchhablani3/spring_2024/socnav/habitat-sim/src_python:${PYTHONPATH}
 
 # wandb config
-JOB_ID="socnav_ddppo_baseline_multi_gpu_full_curriculum_additive_dynamic_0.75_0.5"
+JOB_ID="socnav_ddppo_baseline_multi_gpu_full_curriculum"
 # split="train"
 DATA_PATH="data/datasets/hssd/rearrange"
-WB_ENTITY="madhurauk"
+WB_ENTITY="gchhablani"
 PROJECT_NAME="socnav"
 
 TENSORBOARD_DIR="tb/${JOB_ID}/seed_1/"
-CHECKPOINT_DIR="socnav_checkpoints/${JOB_ID}/seed_1/"
+CHECKPOINT_DIR="data/socnav_checkpoints/${JOB_ID}/seed_1/"
 
 
 srun python -um socnav.run \
-    --config-name=experiments/ddppo_socnav_full_curriculum_additive_dynamic_zero_gps.yaml \
+    --config-name=experiments/ddppo_socnav_full_curriculum.yaml \
     habitat.gps_available_every_x_steps=1 \
-    habitat.curriculum_upper_threshold=0.75 \
-    habitat.curriculum_lower_threshold=0.5 \
     habitat_baselines.evaluate=False \
     habitat_baselines.wb.entity=$WB_ENTITY \
     habitat_baselines.wb.run_name=$JOB_ID \

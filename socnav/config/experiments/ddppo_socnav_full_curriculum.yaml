@@ -53,7 +53,7 @@ habitat:
 
 habitat_baselines:
   verbose: False
-  trainer_name: "curriculum_zero_gps_trainer"
+  trainer_name: "curriculum_trainer"
   updater_name: "HRLPPO"
   distrib_updater_name: "HRLDDPPO"
   torch_gpu_id: 0

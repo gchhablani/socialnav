@@ -2,8 +2,10 @@ from hydra.core.config_search_path import ConfigSearchPath
 from hydra.core.config_store import ConfigStore
 from hydra.plugins.search_path_plugin import SearchPathPlugin
 from habitat.config.default_structured_configs import HabitatConfig, LabSensorConfig
+from habitat.config.default_structured_configs import HabitatBaseConfig
+from typing import List
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 @dataclass
 class StepIDSensorConfig(LabSensorConfig):
@@ -15,14 +17,27 @@ class SparseGpsHabitatConfig(HabitatConfig):
     gps_available_every_x_steps: int = 5
 
 @dataclass
-class CurriculumHabitatConfig(HabitatConfig):
-    gps_available_every_x_steps: int = 5
+class CurriculumConfig(HabitatBaseConfig):
+    last_gps: bool = False
+    additive: bool = False
+    dynamic_additive: bool = False
+    update_gps_availability_every_x_steps: int = 1
+    warmup_steps: int = 25000000
+    curriculum_upper_threshold: float = 0.95
     curriculum_lower_threshold: float = 0.85
-    curriculum_upper_threshold: float = 0.90
-    warmup_steps: float = 0
-    curriculum_dynamic_scale_factor: float = 0.05 
-    curriculum_dynamic_axis: float = 0.55
+    dynamic_increment_baseline_score: float = 0.8
+    dynamic_increment_scaling_factor: float = 0.05
+    use_dynamic_lower_threshold: bool = False
+    dynamic_lower_threshold: List[List[float]] = field(default_factory=lambda: [[1e6, 0.8], [2e6, 0.85], [3e6, 0.9]])
+    add_increment: int = 10
+    add_decrement: int = 5
+    mult_increment: float = 2
+    mult_decrement: float = 2
 
+
+@dataclass
+class CurriculumHabitatConfig(SparseGpsHabitatConfig):
+    curriculum_config: CurriculumConfig = CurriculumConfig()
 
 
 # -----------------------------------------------------------------------------

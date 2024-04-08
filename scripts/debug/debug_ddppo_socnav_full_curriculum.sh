@@ -1,16 +1,16 @@
 #!/bin/bash
-#SBATCH --job-name=snav-full-curriculum-warmup-new
-#SBATCH --output=slurm_logs/train/socialnav-ddppo-full-curriculum-warmup-new-%j.out
-#SBATCH --error=slurm_logs/train/socialnav-ddppo-full-curriculum-warmup-new-%j.err
-#SBATCH --gpus a40:4
+#SBATCH --job-name=snav-full-curriculum
+#SBATCH --output=slurm_logs/junk/socialnav-ddppo-full-curriculum-%j.out
+#SBATCH --error=slurm_logs/junk/socialnav-ddppo-full-curriculum-%j.err
+#SBATCH --gpus a40:1
 #SBATCH --cpus-per-task 10
 #SBATCH --nodes 1
-#SBATCH --ntasks-per-node 4
+#SBATCH --ntasks-per-node 1
 #SBATCH --signal=USR1@90
 #SBATCH --requeue
-#SBATCH --exclude=shakey,chappie,kitt
-#SBATCH --account=overcap
-#SBATCH --partition=overcap
+#SBATCH --exclude=shakey,nestor
+#SBATCH --partition=cvmlp-lab
+#SBATCH --qos=debug
 
 export GLOG_minloglevel=2
 export HABITAT_SIM_LOG=quiet
@@ -19,9 +19,9 @@ export MAGNUM_LOG=quiet
 MAIN_ADDR=$(scontrol show hostnames "${SLURM_JOB_NODELIST}" | head -n 1)
 export MAIN_ADDR
 
-source /coc/flash5/mummettuguli3/conda_installation/anaconda3/etc/profile.d/conda.sh
+source /srv/flash1/gchhablani3/miniforge3/etc/profile.d/conda.sh
 conda deactivate
-conda activate socnav2
+conda activate socnav
 
 # TENSORBOARD_DIR="tb/ddppo_socnav/seed_1/"
 # CHECKPOINT_DIR="data/new_checkpoints/ddppo_socnav/seed_1/"
@@ -31,29 +31,25 @@ conda activate socnav2
 export PYTHONPATH=/srv/flash1/gchhablani3/spring_2024/socnav/habitat-sim/src_python:${PYTHONPATH}
 
 # wandb config
-JOB_ID="socnav_ddppo_baseline_multi_gpu_full_curriculum_warmup"
-# split="train"
+JOB_ID="socnav_ddppo_baseline_multi_gpu_full_curriculum"
 DATA_PATH="data/datasets/hssd/rearrange"
-WB_ENTITY="madhurauk"
+WB_ENTITY="gchhablani"
 PROJECT_NAME="socnav"
-
-TENSORBOARD_DIR="tb/${JOB_ID}/seed_1/"
-CHECKPOINT_DIR="socnav_checkpoints/${JOB_ID}/seed_1/"
+TENSORBOARD_DIR="tb/junk/${JOB_ID}/seed_4/"
+CHECKPOINT_DIR="data/socnav_checkpoints/junk/${JOB_ID}/seed_4/"
 
 
 srun python -um socnav.run \
-    --config-name=experiments/ddppo_socnav_full_curriculum_warmup_zero_gps.yaml \
+    --config-name=experiments/ddppo_socnav_full_curriculum.yaml \
     habitat.gps_available_every_x_steps=1 \
-    habitat.warmup_steps=1e7 \
-    habitat.curriculum_upper_threshold=0.9 \
-    habitat.curriculum_lower_threshold=0.85 \
+    habitat.curriculum_config.use_dynamic_lower_threshold=True \
     habitat_baselines.evaluate=False \
     habitat_baselines.wb.entity=$WB_ENTITY \
     habitat_baselines.wb.run_name=$JOB_ID \
     habitat_baselines.wb.project_name=$PROJECT_NAME \
     habitat_baselines.num_checkpoints=150 \
     habitat_baselines.total_num_steps=3e8 \
-    habitat_baselines.num_environments=32 \
+    habitat_baselines.num_environments=12 \
     habitat_baselines.tensorboard_dir=${TENSORBOARD_DIR} \
     habitat_baselines.video_dir="videos" \
     habitat_baselines.load_resume_state_config=True \
@@ -88,4 +84,4 @@ srun python -um socnav.run \
     habitat.simulator.ctrl_freq=120 \
     habitat.simulator.agents.agent_0.joint_start_noise=0.0 \
     habitat.dataset.data_path=${DATA_PATH}/train/social_rearrange.json.gz \
-    # habitat.dataset.content_scenes=['102817140'] \
+    habitat.dataset.content_scenes=['108294897_176710602.scene_instance'] \
