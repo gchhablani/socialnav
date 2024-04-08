@@ -21,7 +21,7 @@ class CurriculumConfig(HabitatBaseConfig):
     last_gps: bool = False
     additive: bool = False
     dynamic_additive: bool = False
-    update_gps_availability_every_x_steps: int = 1
+    update_curriculum_every_x_steps: int = 1
     warmup_steps: int = 25000000
     curriculum_upper_threshold: float = 0.95
     curriculum_lower_threshold: float = 0.85
