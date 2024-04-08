@@ -53,6 +53,7 @@ class CurriculumTrainer(PPOTrainer):
         super().__init__(config)
         self.gps_available_every_x_steps = self.config.habitat.gps_available_every_x_steps
         self.has_found_human = 0
+        self.last_curr_update_step = 0
 
     def _init_train(self, resume_state=None):
         if resume_state is None:
@@ -164,7 +165,7 @@ class CurriculumTrainer(PPOTrainer):
                 ] = self._encoder(batch)
 
         ### NOTE: We initialize last GPS here based on the batch
-        self.last_observed_gps = batch['step_id']
+        self.last_observed_gps = batch['agent_0_goal_to_agent_gps_compass'] #batch['step_id']
         ###
         self._agent.rollouts.insert_first_observations(batch)
 
@@ -341,7 +342,8 @@ class CurriculumTrainer(PPOTrainer):
                     curriculum_config = self.config.habitat.curriculum_config
                     self.lower_threshold = curriculum_config.curriculum_lower_threshold
                     # Warmup
-                    if self.num_steps_done >= curriculum_config.warmup_steps:
+                    if self.num_steps_done >= curriculum_config.warmup_steps and self.num_steps_done >= self.last_curr_update_step + curriculum_config.update_curriculum_every_x_steps:
+                        self.last_curr_update_step = self.num_steps_done
                         # Dynamic Additive Increment
                         if curriculum_config.dynamic_additive:
                             baseline = curriculum_config.dynamic_increment_baseline_score
