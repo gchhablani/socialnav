@@ -347,8 +347,10 @@ class CurriculumTrainer(PPOTrainer):
                         # Dynamic Additive Increment
                         if curriculum_config.dynamic_additive:
                             baseline = curriculum_config.dynamic_increment_baseline_score
-                            scale = curriculum_config.dynamic_increment_scaling_factor
-                            dynamic_increment = int((self.has_found_human - baseline) // scale)
+                            increment_scale = curriculum_config.dynamic_increment_scaling_factor
+                            dynamic_increment = int((self.has_found_human - baseline) // increment_scale)
+                            decrement_scale = curriculum_config.dynamic_decrement_scaling_factor
+                            dynamic_decrement = int((self.has_found_human - baseline) // decrement_scale)
                             
                         # Dynamic Threshold
                         if curriculum_config.use_dynamic_lower_threshold:
@@ -392,7 +394,7 @@ class CurriculumTrainer(PPOTrainer):
                                 )
                             elif curriculum_config.dynamic_additive:
                                 self.gps_available_every_x_steps = max(
-                                    self.gps_available_every_x_steps + dynamic_increment, 
+                                    self.gps_available_every_x_steps + dynamic_decrement, 
                                     1
                                 )
                             else:

@@ -26,7 +26,8 @@ class CurriculumConfig(HabitatBaseConfig):
     curriculum_upper_threshold: float = 0.95
     curriculum_lower_threshold: float = 0.85
     dynamic_increment_baseline_score: float = 0.8
-    dynamic_increment_scaling_factor: float = 0.05
+    dynamic_increment_scaling_factor: float = 0.02
+    dynamic_decrement_scaling_factor: float = 0.1
     use_dynamic_lower_threshold: bool = False
     dynamic_lower_threshold: List[List[float]] = field(default_factory=lambda: [[1e6, 0.8], [2e6, 0.85], [3e6, 0.9]])
     add_increment: int = 10
