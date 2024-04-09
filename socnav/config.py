@@ -33,6 +33,7 @@ class CurriculumConfig(HabitatBaseConfig):
     add_decrement: int = 5
     mult_increment: float = 2
     mult_decrement: float = 2
+    staircase_increment: int = 50
 
 
 @dataclass
