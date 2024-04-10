@@ -251,8 +251,8 @@ class CurriculumTrainer(PPOTrainer):
                             **self._agent.get_resume_state(),
                             config=self.config,
                             requeue_stats=requeue_stats,
-                            gps_available_every_x_steps=self.gps_available_every_x_steps
-                            last_curr_update_step=self.last_curr_update_step
+                            gps_available_every_x_steps=self.gps_available_every_x_steps,
+                            last_curr_update_step=self.last_curr_update_step,
                         ),
                         self.config,
                     )
