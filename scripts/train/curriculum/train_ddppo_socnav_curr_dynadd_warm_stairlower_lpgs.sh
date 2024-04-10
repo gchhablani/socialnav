@@ -1,7 +1,7 @@
 #!/bin/bash
-#SBATCH --job-name=snav-full-curriculum-dynamic-additive-lower-staircase
-#SBATCH --output=slurm_logs/train/socialnav-ddppo-full-curriculum-dynamic-additive-lower-staircase-%j.out
-#SBATCH --error=slurm_logs/train/socialnav-ddppo-full-curriculum-dynamic-additive-lower-staircase-%j.err
+#SBATCH --job-name=snav-curr-dadd-warm-stair-lg
+#SBATCH --output=slurm_logs/train/snav-curr-dadd-warm-stair-lg-%j.out
+#SBATCH --error=slurm_logs/train/snav-curr-dadd-warm-stair-lg-%j.err
 #SBATCH --gpus a40:4
 #SBATCH --cpus-per-task 10
 #SBATCH --nodes 1
@@ -31,7 +31,7 @@ conda activate socnav
 export PYTHONPATH=/srv/flash1/gchhablani3/spring_2024/socnav/habitat-sim/src_python:${PYTHONPATH}
 
 # wandb config
-JOB_ID="socnav_ddppo_baseline_multi_gpu_full_curriculum_dynamic_additive_lower_staircase"
+JOB_ID="socnav_ddppo_full_curriculum_dynamic_additive_lower_staircase_lastgps"
 # split="train"
 DATA_PATH="data/datasets/hssd/rearrange"
 WB_ENTITY="gchhablani"
@@ -45,8 +45,10 @@ srun python -um socnav.run \
     --config-name=experiments/ddppo_socnav_full_curriculum.yaml \
     habitat.gps_available_every_x_steps=1 \
     habitat.curriculum_config.update_curriculum_every_x_steps=1000000 \
+    habitat.curriculum_config.additive=True \
+    habitat.curriculum_config.warmup_steps=25000000 \
     habitat.curriculum_config.dynamic_additive=True \
-    habitat.curriculum_config.warmup_steps=0 \
+    habitat.curriculum_config.last_gps=True \
     habitat.curriculum_config.use_dynamic_lower_threshold=True \
     habitat_baselines.evaluate=False \
     habitat_baselines.wb.entity=$WB_ENTITY \

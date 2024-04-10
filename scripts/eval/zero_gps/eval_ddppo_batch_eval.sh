@@ -1,7 +1,7 @@
 #!/bin/bash
 
 input_file="selected_checkpoints.txt"
-experiment_name="socnav_ddppo_baseline_multi_gpu_full_sparse_25/seed_1"
+experiment_name="socnav_ddppo_baseline_multi_gpu_full_sparse_100/seed_1"
 ckpt_dir="data/socnav_checkpoints/${experiment_name}"
 
 
