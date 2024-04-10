@@ -155,6 +155,10 @@ class SparseGpsTrainer(PPOTrainer):
                 batch[
                     PointNavResNetNet.PRETRAINED_VISUAL_FEATURES_KEY
                 ] = self._encoder(batch)
+
+        ### NOTE: We initialize last GPS here based on the batch
+        self.last_known_gps_obs = batch['agent_0_goal_to_agent_gps_compass'] #batch['step_id']
+        ###
         self._agent.rollouts.insert_first_observations(batch)
 
         self.current_episode_reward = torch.zeros(self.envs.num_envs, 1)
@@ -341,9 +345,18 @@ class SparseGpsTrainer(PPOTrainer):
             
             for i in range(len(batch['step_id'])):
                 step_id = batch['step_id'][i].item()
-                if step_id % self.config.habitat.gps_available_every_x_steps != 0:
-                    with inference_mode():
-                        batch['agent_0_goal_to_agent_gps_compass'][i] = torch.zeros_like(batch['agent_0_goal_to_agent_gps_compass'][i])
+                if self.config.habitat.last_gps:
+                    if step_id == 1:
+                        self.last_known_gps_obs[i] = batch['agent_0_goal_to_agent_gps_compass'][i]
+                    if step_id % self.config.habitat.gps_available_every_x_steps != 0:
+                        with inference_mode():
+                            batch['agent_0_goal_to_agent_gps_compass'][i] = self.last_known_gps_obs[i]
+                    else:
+                        self.last_known_gps_obs[i] = batch['agent_0_goal_to_agent_gps_compass'][i]
+                else:
+                    if step_id % self.config.habitat.gps_available_every_x_steps != 0:
+                        with inference_mode():
+                            batch['agent_0_goal_to_agent_gps_compass'][i] = torch.zeros_like(batch['agent_0_goal_to_agent_gps_compass'][i])
                 # else:
                 #     logger.info(batch['step_id'][i])
                 #     logger.info(batch['agent_0_goal_to_agent_gps_compass'])

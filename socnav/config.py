@@ -15,6 +15,7 @@ class StepIDSensorConfig(LabSensorConfig):
 @dataclass
 class SparseGpsHabitatConfig(HabitatConfig):
     gps_available_every_x_steps: int = 5
+    last_gps: bool = False
 
 @dataclass
 class CurriculumConfig(HabitatBaseConfig):

@@ -165,7 +165,7 @@ class CurriculumTrainer(PPOTrainer):
                 ] = self._encoder(batch)
 
         ### NOTE: We initialize last GPS here based on the batch
-        self.last_observed_gps = batch['agent_0_goal_to_agent_gps_compass'] #batch['step_id']
+        self.last_known_gps_obs = batch['agent_0_goal_to_agent_gps_compass'] #batch['step_id']
         ###
         self._agent.rollouts.insert_first_observations(batch)
 
