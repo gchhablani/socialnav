@@ -68,6 +68,7 @@ class StaircaseCurriculumTrainer(PPOTrainer):
             self.config = self._get_resume_state_config_or_new_config(
                 resume_state["config"]
             )
+            self.gps_available_every_x_steps = resume_state["gps_available_every_x_steps"]
 
         if self.config.habitat_baselines.rl.ddppo.force_distributed:
             self._is_distributed = True
@@ -249,6 +250,7 @@ class StaircaseCurriculumTrainer(PPOTrainer):
                             **self._agent.get_resume_state(),
                             config=self.config,
                             requeue_stats=requeue_stats,
+                            gps_available_every_x_steps=self.gps_available_every_x_steps
                         ),
                         self.config,
                     )
