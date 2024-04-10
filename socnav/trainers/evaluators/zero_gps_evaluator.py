@@ -47,6 +47,13 @@ class ZeroGpsEvaluator(HabitatEvaluator):
         batch = apply_obs_transforms_batch(batch, obs_transforms)  # type: ignore
         # logger.info("Initial batch")
         # logger.info(batch['step_id'])
+        ### Zero GPS Evaluator Logic
+        for i in range(len(batch['step_id'])):
+            step_id = batch['step_id'][i].item()
+            if step_id % config.habitat.gps_available_every_x_steps != 0:
+                with inference_mode():
+                    batch['agent_0_goal_to_agent_gps_compass'][i] = torch.zeros_like(batch['agent_0_goal_to_agent_gps_compass'][i])
+        ###
         action_shape, discrete_actions = get_action_space_info(
             agent.actor_critic.policy_action_space
         )
