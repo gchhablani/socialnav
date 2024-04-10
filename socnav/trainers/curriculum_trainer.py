@@ -69,6 +69,7 @@ class CurriculumTrainer(PPOTrainer):
                 resume_state["config"]
             )
             self.gps_available_every_x_steps = resume_state["gps_available_every_x_steps"]
+            self.last_curr_update_step = resume_state["last_curr_update_step"]
 
         if self.config.habitat_baselines.rl.ddppo.force_distributed:
             self._is_distributed = True
@@ -251,6 +252,7 @@ class CurriculumTrainer(PPOTrainer):
                             config=self.config,
                             requeue_stats=requeue_stats,
                             gps_available_every_x_steps=self.gps_available_every_x_steps
+                            last_curr_update_step=self.last_curr_update_step
                         ),
                         self.config,
                     )
