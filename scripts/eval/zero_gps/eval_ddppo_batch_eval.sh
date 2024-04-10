@@ -3,7 +3,7 @@
 input_file="selected_checkpoints.txt"
 experiment_name="socnav_ddppo_baseline_multi_gpu_full_sparse_25/seed_1"
 ckpt_dir="data/socnav_checkpoints/${experiment_name}"
-tb_dir="tb/${experiment_name}/ind"
+
 
 while read -r checkpoint_file_name; do
   # Extract checkpoint_id from the file name
@@ -11,6 +11,7 @@ while read -r checkpoint_file_name; do
 
   # Construct uuid, tensorboard_dir, and current_ckpt_dir
   uuid="ckpt_${checkpoint_id}"
+  tensorboard_dir="tb/${experiment_name}/ind/${checkpoint_id}"
   current_ckpt_dir="${ckpt_dir}/${checkpoint_file_name}"
 
   echo "Ckpt id: $uuid - $checkpoint_id, ${tensorboard_dir}, ${current_ckpt_dir}, ${experiment_name}"
