@@ -52,14 +52,16 @@ class LastGpsEvaluator(HabitatEvaluator):
         # logger.info(batch['step_id'])
         ### Zero GPS Evaluator Logic
         for i in range(len(batch['step_id'])):
-            step_id = batch['step_id'][i].item()
-            if step_id == 1:
-                self.last_known_gps_obs[i] = batch['agent_0_goal_to_agent_gps_compass'][i]
-            if step_id % config.habitat.gps_available_every_x_steps != 0:
+            current_step_id = batch['step_id'][i].item()
+            if current_step_id == 1:
+                with inference_mode():
+                    self.last_known_gps_obs[i] = batch['agent_0_goal_to_agent_gps_compass'][i]
+            if current_step_id % config.habitat.gps_available_every_x_steps != 0:
                 with inference_mode():
                     batch['agent_0_goal_to_agent_gps_compass'][i] = self.last_known_gps_obs[i] #torch.zeros_like(batch['agent_0_goal_to_agent_gps_compass'][i])
             else:
-                self.last_known_gps_obs[i] = batch['agent_0_goal_to_agent_gps_compass'][i]
+                with inference_mode():
+                    self.last_known_gps_obs[i] = batch['agent_0_goal_to_agent_gps_compass'][i]
         ###
         action_shape, discrete_actions = get_action_space_info(
             agent.actor_critic.policy_action_space
@@ -204,17 +206,16 @@ class LastGpsEvaluator(HabitatEvaluator):
 
             ### Zero GPS evaluator logic
             for i in range(len(batch['step_id'])):
-                step_id = batch['step_id'][i].item()
-                if step_id == 1:
-                    self.last_known_gps_obs[i] = batch['agent_0_goal_to_agent_gps_compass'][i]
-                if step_id % config.habitat.gps_available_every_x_steps != 0:
+                current_step_id = batch['step_id'][i].item()
+                if current_step_id == 1:
+                    with inference_mode():
+                        self.last_known_gps_obs[i] = batch['agent_0_goal_to_agent_gps_compass'][i]
+                if current_step_id % config.habitat.gps_available_every_x_steps != 0:
                     with inference_mode():
                         batch['agent_0_goal_to_agent_gps_compass'][i] = self.last_known_gps_obs[i] #torch.zeros_like(batch['agent_0_goal_to_agent_gps_compass'][i])
                 else:
-                    self.last_known_gps_obs[i] = batch['agent_0_goal_to_agent_gps_compass'][i]
-                # else:
-                #     logger.info(batch['step_id'][i])
-                #     logger.info(batch['agent_0_goal_to_agent_gps_compass'][i])
+                    with inference_mode():
+                        self.last_known_gps_obs[i] = batch['agent_0_goal_to_agent_gps_compass'][i]
             ###
 
             not_done_masks = torch.tensor(
