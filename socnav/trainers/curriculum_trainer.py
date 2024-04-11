@@ -450,12 +450,14 @@ class CurriculumTrainer(PPOTrainer):
                 step_id = batch['step_id'][i].item()
                 if self.config.habitat.curriculum_config.last_gps:
                     if step_id == 1:
-                        self.last_known_gps_obs[i] = batch['agent_0_goal_to_agent_gps_compass'][i]
+                        with inference_mode():
+                            self.last_known_gps_obs[i] = batch['agent_0_goal_to_agent_gps_compass'][i]
                     if step_id % self.gps_available_every_x_steps != 0:
                         with inference_mode():
                             batch['agent_0_goal_to_agent_gps_compass'][i] = self.last_known_gps_obs[i]
                     else:
-                        self.last_known_gps_obs[i] = batch['agent_0_goal_to_agent_gps_compass'][i]
+                        with inference_mode():
+                            self.last_known_gps_obs[i] = batch['agent_0_goal_to_agent_gps_compass'][i]
                 else:
                     if step_id % self.gps_available_every_x_steps != 0:
                         with inference_mode():
