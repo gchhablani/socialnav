@@ -1,16 +1,16 @@
 #!/bin/bash
-#SBATCH --job-name=snav-curr-add-warm-stair-90
-#SBATCH --output=slurm_logs/train/snav-curr-add-warm-stair-90-%j.out
-#SBATCH --error=slurm_logs/train/snav-curr-add-warm-stair-90-%j.err
-#SBATCH --gpus a40:4
+#SBATCH --job-name=snav-dyn-thresh
+#SBATCH --output=slurm_logs/junk/socialnav-ddppo-full-curriculum-%j.out
+#SBATCH --error=slurm_logs/junk/socialnav-ddppo-full-curriculum-%j.err
+#SBATCH --gpus a40:1
 #SBATCH --cpus-per-task 10
 #SBATCH --nodes 1
-#SBATCH --ntasks-per-node 4
+#SBATCH --ntasks-per-node 1
 #SBATCH --signal=USR1@90
 #SBATCH --requeue
-#SBATCH --exclude=shakey,chappie,kitt
+#SBATCH --exclude=shakey,nestor
 #SBATCH --partition=cvmlp-lab
-#SBATCH --qos=short
+#SBATCH --qos=debug
 
 export GLOG_minloglevel=2
 export HABITAT_SIM_LOG=quiet
@@ -31,23 +31,18 @@ conda activate socnav
 export PYTHONPATH=/srv/flash1/gchhablani3/spring_2024/socnav/habitat-sim/src_python:${PYTHONPATH}
 
 # wandb config
-JOB_ID="socnav_ddppo_full_curriculum_additive_lower_staircase_90_upper"
-# split="train"
+JOB_ID="socnav_ddppo_baseline_multi_gpu_full_curriculum_zero_gps_dynamic_thresh"
 DATA_PATH="data/datasets/hssd/rearrange"
 WB_ENTITY="gchhablani"
 PROJECT_NAME="socnav"
-
-TENSORBOARD_DIR="tb/${JOB_ID}/seed_4/"
-CHECKPOINT_DIR="data/socnav_checkpoints/${JOB_ID}/seed_4/"
+TENSORBOARD_DIR="tb/junk/${JOB_ID}/seed_3/"
+CHECKPOINT_DIR="data/socnav_checkpoints/junk/${JOB_ID}/seed_3/"
 
 
 srun python -um socnav.run \
     --config-name=experiments/ddppo_socnav_full_curriculum.yaml \
     habitat.gps_available_every_x_steps=1 \
-    habitat.curriculum_config.update_curriculum_every_x_steps=1000000 \
-    habitat.curriculum_config.additive=True \
-    habitat.curriculum_config.curriculum_upper_threshold=0.9 \
-    habitat.curriculum_config.warmup_steps=25000000 \
+    habitat.curriculum_config.warmup_steps=1\
     habitat.curriculum_config.use_dynamic_lower_threshold=True \
     habitat_baselines.evaluate=False \
     habitat_baselines.wb.entity=$WB_ENTITY \
@@ -55,7 +50,7 @@ srun python -um socnav.run \
     habitat_baselines.wb.project_name=$PROJECT_NAME \
     habitat_baselines.num_checkpoints=150 \
     habitat_baselines.total_num_steps=3e8 \
-    habitat_baselines.num_environments=32 \
+    habitat_baselines.num_environments=12 \
     habitat_baselines.tensorboard_dir=${TENSORBOARD_DIR} \
     habitat_baselines.video_dir="videos" \
     habitat_baselines.load_resume_state_config=True \
@@ -90,4 +85,4 @@ srun python -um socnav.run \
     habitat.simulator.ctrl_freq=120 \
     habitat.simulator.agents.agent_0.joint_start_noise=0.0 \
     habitat.dataset.data_path=${DATA_PATH}/train/social_rearrange.json.gz \
-    # habitat.dataset.content_scenes=['102817140'] \
+    habitat.dataset.content_scenes=['108294897_176710602.scene_instance'] \

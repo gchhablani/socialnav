@@ -1,7 +1,7 @@
 #!/bin/bash
-#SBATCH --job-name=snav-curr-add-warm-stair-90
-#SBATCH --output=slurm_logs/train/snav-curr-add-warm-stair-90-%j.out
-#SBATCH --error=slurm_logs/train/snav-curr-add-warm-stair-90-%j.err
+#SBATCH --job-name=snav-curr-mul-warm-stair-90
+#SBATCH --output=slurm_logs/train/snav-curr-mul-warm-stair-90-%j.out
+#SBATCH --error=slurm_logs/train/snav-curr-mul-warm-stair-90-%j.err
 #SBATCH --gpus a40:4
 #SBATCH --cpus-per-task 10
 #SBATCH --nodes 1
@@ -31,7 +31,7 @@ conda activate socnav
 export PYTHONPATH=/srv/flash1/gchhablani3/spring_2024/socnav/habitat-sim/src_python:${PYTHONPATH}
 
 # wandb config
-JOB_ID="socnav_ddppo_full_curriculum_additive_lower_staircase_90_upper"
+JOB_ID="socnav_ddppo_full_curriculum_multiplicative_lower_staircase_90_upper"
 # split="train"
 DATA_PATH="data/datasets/hssd/rearrange"
 WB_ENTITY="gchhablani"
@@ -45,7 +45,6 @@ srun python -um socnav.run \
     --config-name=experiments/ddppo_socnav_full_curriculum.yaml \
     habitat.gps_available_every_x_steps=1 \
     habitat.curriculum_config.update_curriculum_every_x_steps=1000000 \
-    habitat.curriculum_config.additive=True \
     habitat.curriculum_config.curriculum_upper_threshold=0.9 \
     habitat.curriculum_config.warmup_steps=25000000 \
     habitat.curriculum_config.use_dynamic_lower_threshold=True \

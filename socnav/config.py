@@ -25,7 +25,7 @@ class CurriculumConfig(HabitatBaseConfig):
     update_curriculum_every_x_steps: int = 1
     warmup_steps: int = 25000000
     curriculum_upper_threshold: float = 0.9
-    curriculum_lower_threshold: float = 0.85
+    curriculum_lower_threshold: float = 0.8
     dynamic_increment_baseline_score: float = 0.8
     dynamic_increment_scaling_factor: float = 0.02
     dynamic_decrement_scaling_factor: float = 0.1

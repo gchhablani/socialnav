@@ -31,14 +31,14 @@ conda activate socnav
 export PYTHONPATH=/srv/flash1/gchhablani3/spring_2024/socnav/habitat-sim/src_python:${PYTHONPATH}
 
 # wandb config
-JOB_ID="socnav_ddppo_full_curriculum_additive_lower_staircase_lastgps"
+JOB_ID="socnav_ddppo_full_curriculum_additive_lower_staircase_lastgps_90_upper"
 # split="train"
 DATA_PATH="data/datasets/hssd/rearrange"
 WB_ENTITY="gchhablani"
 PROJECT_NAME="socnav"
 
-TENSORBOARD_DIR="tb/${JOB_ID}/seed_1/"
-CHECKPOINT_DIR="data/socnav_checkpoints/${JOB_ID}/seed_1/"
+TENSORBOARD_DIR="tb/${JOB_ID}/seed_4/"
+CHECKPOINT_DIR="data/socnav_checkpoints/${JOB_ID}/seed_4/"
 
 
 srun python -um socnav.run \
@@ -47,6 +47,7 @@ srun python -um socnav.run \
     habitat.curriculum_config.update_curriculum_every_x_steps=1000000 \
     habitat.curriculum_config.additive=True \
     habitat.curriculum_config.warmup_steps=25000000 \
+    habitat.curriculum_config.curriculum_upper_threshold=0.9 \
     habitat.curriculum_config.last_gps=True \
     habitat.curriculum_config.use_dynamic_lower_threshold=True \
     habitat_baselines.evaluate=False \
