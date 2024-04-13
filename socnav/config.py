@@ -23,16 +23,16 @@ class CurriculumConfig(HabitatBaseConfig):
     additive: bool = False
     dynamic_additive: bool = False
     update_curriculum_every_x_steps: int = 1
-    warmup_steps: int = 25000000
+    warmup_steps: int = 10000000
     curriculum_upper_threshold: float = 0.9
     curriculum_lower_threshold: float = 0.8
     dynamic_increment_baseline_score: float = 0.8
-    dynamic_increment_scaling_factor: float = 0.02
-    dynamic_decrement_scaling_factor: float = 0.1
+    dynamic_increment_scaling_factor: float = 0.003
+    dynamic_decrement_scaling_factor: float = 0.01
     use_dynamic_lower_threshold: bool = False
-    dynamic_lower_threshold: List[List[float]] = field(default_factory=lambda: [[1e8, 0.8], [2e8, 0.85], [3e8, 0.9]])
-    add_increment: int = 10
-    add_decrement: int = 5
+    dynamic_lower_threshold: List[List[float]] = field(default_factory=lambda: [[1e8, 0.8], [2e8, 0.85], [3e8, 0.88]])
+    add_increment: int = 50
+    add_decrement: int = 25
     mult_increment: float = 2
     mult_decrement: float = 2
     staircase_increment: int = 50
