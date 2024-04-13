@@ -1,7 +1,7 @@
 #!/bin/bash
-#SBATCH --job-name=snav-curr-add-lg
-#SBATCH --output=slurm_logs/train/snav-curr-add-lg-%j.out
-#SBATCH --error=slurm_logs/train/snav-curr-add-lg-%j.err
+#SBATCH --job-name=snav-curr-mul-lg
+#SBATCH --output=slurm_logs/train/snav-curr-mul-lg-%j.out
+#SBATCH --error=slurm_logs/train/snav-curr-mul-lg-%j.err
 #SBATCH --gpus a40:4
 #SBATCH --cpus-per-task 10
 #SBATCH --nodes 1
@@ -31,7 +31,7 @@ conda activate socnav
 export PYTHONPATH=/srv/flash1/gchhablani3/spring_2024/socnav/habitat-sim/src_python:${PYTHONPATH}
 
 # wandb config
-JOB_ID="socnav_ddppo_full_curr_add_last_gps"
+JOB_ID="socnav_ddppo_full_curr_mul_last_gps"
 # split="train"
 DATA_PATH="data/datasets/hssd/rearrange"
 WB_ENTITY="gchhablani"
@@ -43,7 +43,6 @@ CHECKPOINT_DIR="data/socnav_checkpoints/${JOB_ID}/final/"
 
 srun python -um socnav.run \
     --config-name=experiments/ddppo_socnav_full_curriculum.yaml \
-    habitat.curriculum_config.additive=True \
     habitat.curriculum_config.last_gps=True \
     habitat_baselines.evaluate=False \
     habitat_baselines.wb.entity=$WB_ENTITY \
