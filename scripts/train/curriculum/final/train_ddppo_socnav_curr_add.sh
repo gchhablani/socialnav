@@ -9,8 +9,8 @@
 #SBATCH --signal=USR1@90
 #SBATCH --requeue
 #SBATCH --exclude=shakey,chappie,kitt
-#SBATCH --partition=cvmlp-lab
-#SBATCH --qos=short
+#SBATCH --partition=overcap
+#SBATCH --account=overcap
 
 export GLOG_minloglevel=2
 export HABITAT_SIM_LOG=quiet
@@ -34,7 +34,7 @@ export PYTHONPATH=/srv/flash1/gchhablani3/spring_2024/socnav/habitat-sim/src_pyt
 JOB_ID="socnav_ddppo_full_curr_add"
 # split="train"
 DATA_PATH="data/datasets/hssd/rearrange"
-WB_ENTITY="gchhablani"
+WB_ENTITY="sivakailas"
 PROJECT_NAME="socnav"
 
 TENSORBOARD_DIR="tb/${JOB_ID}/final/"
