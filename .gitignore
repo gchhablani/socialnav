@@ -4,7 +4,6 @@ slurm_logs
 outputs
 train_val
 tb
-misc
 *.log
 *.pyc
 videos
