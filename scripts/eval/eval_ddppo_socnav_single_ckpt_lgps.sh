@@ -26,10 +26,10 @@ conda activate socnav
 
 export PYTHONPATH=/srv/flash1/gchhablani3/spring_2024/socnav/habitat-sim/src_python:${PYTHONPATH}
 
-JOB_ID="socnav_ddppo_baseline_multi_gpu_full"
+JOB_ID="socnav_ddppo_full_curr_mul_last_gps"
 DATA_PATH="data/datasets/hssd/rearrange"
-TENSORBOARD_DIR="tb/${JOB_ID}/seed_2/ckpt_140_eval/"
-CHECKPOINT_DIR="data/socnav_checkpoints/${JOB_ID}/seed_2/ckpt.140.pth"
+TENSORBOARD_DIR="tb/${JOB_ID}/final/ckpt_69_eval/"
+CHECKPOINT_DIR="data/socnav_checkpoints/${JOB_ID}/final/ckpt.69.pth"
 
 # wandb config
 # JOB_ID="pnav_mp3d_2"
@@ -37,10 +37,11 @@ CHECKPOINT_DIR="data/socnav_checkpoints/${JOB_ID}/seed_2/ckpt.140.pth"
 # PROJECT_NAME="pnav_mp3d"
 
 srun python -um socnav.run \
-    --config-name=experiments/ddppo_socnav_full.yaml \
+    --config-name=experiments/ddppo_socnav_full_sparse.yaml \
+    habitat.gps_available_every_x_steps=1500 \
     habitat_baselines.evaluate=True \
     habitat.dataset.split=val \
-    habitat_baselines.video_dir="videos/full/ckpt_145" \
+    habitat_baselines.video_dir="videos/mul_lgps/ckpt_69/" \
     habitat_baselines.num_checkpoints=150 \
     habitat_baselines.total_num_steps=3e8 \
     habitat_baselines.num_environments=12 \
@@ -81,4 +82,5 @@ srun python -um socnav.run \
     habitat_baselines.eval.extra_sim_sensors.third_rgb_sensor.height=1080 \
     habitat_baselines.eval.extra_sim_sensors.third_rgb_sensor.width=1920 \
     habitat.dataset.data_path=${DATA_PATH}/val/social_rearrange.json.gz \
+    habitat_baselines.evaluator._target_="socnav.trainers.evaluators.last_gps_evaluator.LastGpsEvaluator" \
     # ++habitat_baselines.eval.video_option=[] \
